@@ -807,6 +807,80 @@ html, body {
 }
 
 /* -------------------------------------------------------------
+   ACCESSMAP — MARKER & FLOATING CONTROL TOKENS
+-------------------------------------------------------------- */
+.map-marker-btn {
+  display: block;
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform var(--transition-fast);
+}
+
+.map-marker-btn:active {
+  transform: scale(0.94);
+}
+
+.map-marker-btn:focus-visible {
+  outline: 2px solid var(--sd-crimson);
+  outline-offset: 3px;
+  border-radius: 50%;
+}
+
+/* Compact vertical control cluster (compass / zoom in / zoom out) */
+.map-control-btn {
+  width: 40px;
+  height: 40px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), transform var(--transition-fast), color var(--transition-fast);
+}
+
+.map-control-btn:hover:not(:disabled) {
+  background-color: var(--bg-subtle);
+}
+
+.map-control-btn:active:not(:disabled) {
+  background-color: var(--bg-tertiary);
+  transform: scale(0.9);
+}
+
+.map-control-btn:focus-visible {
+  outline: 2px solid var(--sd-crimson);
+  outline-offset: -2px;
+}
+
+.map-control-btn:disabled {
+  color: var(--text-tertiary);
+  opacity: 0.45;
+  cursor: default;
+}
+
+.map-control-divider {
+  height: 1px;
+  margin: 0 8px;
+  background-color: var(--bg-tertiary);
+}
+
+/* Live GPS accuracy halo for the "you are here" pin */
+@keyframes gpsHaloPulse {
+  0%, 100% { transform: scale(0.88); opacity: 0.55; }
+  50% { transform: scale(1.06); opacity: 0.2; }
+}
+
+.gps-halo {
+  animation: gpsHaloPulse 3.2s ease-in-out infinite;
+}
+
+/* -------------------------------------------------------------
    RESPONSIVE ADAPTATIONS (FOLDABLES & TABLETS)
 -------------------------------------------------------------- */
 @media (min-width: 640px) {
@@ -834,5 +908,17 @@ html, body {
     overflow-y: auto !important;
     border-left: var(--border-light) !important;
     background: var(--bg-card) !important;
+  }
+}
+
+/* -------------------------------------------------------------
+   REDUCED MOTION (VESTIBULAR / LOW-VISION COMFORT)
+-------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .gps-halo,
+  .animated-route-line,
+  .pulse-sensor,
+  .pulse-violation {
+    animation: none;
   }
 }
