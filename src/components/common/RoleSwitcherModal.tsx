@@ -86,7 +86,7 @@ export const RoleSwitcherModal: React.FC = () => {
                       width: '36px',
                       height: '36px',
                       borderRadius: '8px',
-                      backgroundColor: isCurrent ? 'var(--sd-crimson)' : 'var(--bg-subtle)',
+                      backgroundColor: isCurrent ? 'var(--sd-crimson-solid)' : 'var(--bg-subtle)',
                       color: isCurrent ? '#FFFFFF' : 'var(--sd-crimson)',
                       display: 'flex',
                       alignItems: 'center',
@@ -119,7 +119,7 @@ export const RoleSwitcherModal: React.FC = () => {
                         fontSize: '11px',
                         padding: '2px 8px',
                         borderRadius: '4px',
-                        backgroundColor: isCurrent ? 'rgba(139, 29, 36, 0.1)' : 'var(--bg-subtle)',
+                        backgroundColor: isCurrent ? 'var(--sd-crimson-subtle)' : 'var(--bg-subtle)',
                         color: isCurrent ? 'var(--sd-crimson)' : 'var(--text-secondary)'
                       }}
                     >

@@ -10,13 +10,13 @@ export const Toasts: React.FC = () => {
   const getIcon = (type: string) => {
     switch (type) {
       case 'success':
-        return <CheckCircle2 size={18} color="var(--status-success)" />;
+        return <CheckCircle2 size={18} color="var(--on-dark-success)" />;
       case 'security':
-        return <ShieldAlert size={18} color="var(--status-error)" />;
+        return <ShieldAlert size={18} color="var(--on-dark-danger)" />;
       case 'warning':
-        return <AlertCircle size={18} color="var(--status-warning)" />;
+        return <AlertCircle size={18} color="var(--on-dark-warning)" />;
       default:
-        return <Info size={18} color="var(--oku-blue)" />;
+        return <Info size={18} color="var(--on-dark-info)" />;
     }
   };
 
@@ -34,7 +34,7 @@ export const Toasts: React.FC = () => {
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h5 className="toast-title">{toast.title}</h5>
-              <span style={{ fontSize: '10px', color: '#98A2B3' }}>{toast.timestamp}</span>
+              <span style={{ fontSize: '10px', color: 'var(--toast-muted)' }}>{toast.timestamp}</span>
             </div>
             <p className="toast-msg">{toast.message}</p>
           </div>
@@ -43,7 +43,7 @@ export const Toasts: React.FC = () => {
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#98A2B3',
+              color: 'var(--toast-muted)',
               cursor: 'pointer',
               padding: '2px'
             }}

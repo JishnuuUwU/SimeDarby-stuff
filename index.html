@@ -1,13 +1,35 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="UTF-8" />
     <!-- WCAG 2.2 (1.4.4 Resize Text): pinch-zoom must stay enabled, so no maximum-scale / user-scalable=no -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#8B1D24" />
-    <meta name="color-scheme" content="light" />
+    <meta name="color-scheme" content="light dark" />
     <meta name="description" content="Sime Darby Property Accessibility & Community Care: AccessMap step-free navigation, Verified Resident Community Buddy network, and Smart OKU Parking safeguard." />
-    
+
+    <!-- Critical shell colour: the showcase frame is always dark, so even the
+         dev-mode stylesheet hand-off can never flash white -->
+    <style>
+      html { background-color: #0A0D14; }
+      body { margin: 0; }
+    </style>
+
+    <!-- Resolve the saved appearance before first paint to avoid a theme flash -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('sd-theme');
+          var theme = stored === 'dark' || stored === 'light'
+            ? stored
+            : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+          document.documentElement.setAttribute('data-theme', theme);
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute('content', theme === 'dark' ? '#0B0F14' : '#8B1D24');
+        } catch (error) {}
+      })();
+    </script>
+
     <!-- Title -->
     <title>Sime Darby Property | Accessibility & Resident Care</title>
 
@@ -15,7 +37,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
+
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/brand-icon.svg" />
   </head>

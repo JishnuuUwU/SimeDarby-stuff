@@ -8,6 +8,8 @@ import { MAP_MARKER_FEATURES, MOCK_STEP_FREE_ROUTES } from '../data/mockMapFeatu
 import { MOCK_BUDDY_REQUESTS } from '../data/mockBuddyData';
 import { MOCK_PARKING_BAYS, MOCK_SECURITY_LOGS } from '../data/mockParkingBays';
 
+export type ThemeMode = 'light' | 'dark';
+
 export interface ToastMessage {
   id: string;
   type: 'success' | 'info' | 'warning' | 'security';
@@ -28,9 +30,10 @@ interface AppContextType {
   isRoleModalOpen: boolean;
   setIsRoleModalOpen: (open: boolean) => void;
 
-  // Accessibility Toggles & Settings
-  highContrast: boolean;
-  setHighContrast: (enabled: boolean) => void;
+  // Appearance & Accessibility Settings
+  theme: ThemeMode;
+  setTheme: (theme: ThemeMode) => void;
+  toggleTheme: () => void;
   fontSize: 'normal' | 'large' | 'xlarge';
   setFontSize: (size: 'normal' | 'large' | 'xlarge') => void;
   voiceGuidanceEnabled: boolean;
@@ -140,7 +143,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [activeTab, setActiveTab] = useState<'home' | 'accessmap' | 'buddy' | 'parking' | 'profile'>('home');
 
   // Accessibility State
-  const [highContrast, setHighContrast] = useState(false);
+  const [theme, setTheme] = useState<ThemeMode>(() => {
+    const bootTheme = document.documentElement.getAttribute('data-theme');
+    return bootTheme === 'dark' ? 'dark' : 'light';
+  });
   const [fontSize, setFontSize] = useState<'normal' | 'large' | 'xlarge'>('normal');
   const [voiceGuidanceEnabled, setVoiceGuidanceEnabled] = useState(false);
 
@@ -166,10 +172,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Toasts
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
-  // Apply high contrast and font scaling to document element
+  // Apply the appearance theme, persist it and keep the browser chrome in sync
   useEffect(() => {
-    document.documentElement.setAttribute('data-high-contrast', highContrast ? 'true' : 'false');
-  }, [highContrast]);
+    document.documentElement.setAttribute('data-theme', theme);
+    try {
+      localStorage.setItem('sd-theme', theme);
+    } catch {
+      /* private mode — the in-memory theme still applies */
+    }
+    const themeColor = document.querySelector('meta[name="theme-color"]');
+    if (themeColor) {
+      themeColor.setAttribute('content', theme === 'dark' ? '#0B0F14' : '#8B1D24');
+    }
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
 
   useEffect(() => {
     document.documentElement.setAttribute('data-font-size', fontSize);
@@ -460,8 +477,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         switchUserRole,
         isRoleModalOpen,
         setIsRoleModalOpen,
-        highContrast,
-        setHighContrast,
+        theme,
+        setTheme,
+        toggleTheme,
         fontSize,
         setFontSize,
         voiceGuidanceEnabled,

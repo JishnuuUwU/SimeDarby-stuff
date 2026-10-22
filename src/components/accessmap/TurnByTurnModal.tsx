@@ -79,7 +79,7 @@ export const TurnByTurnModal: React.FC<{ route: StepFreeRoute; onClose: () => vo
                     width: '28px',
                     height: '28px',
                     borderRadius: '50%',
-                    backgroundColor: idx === route.waypoints.length - 1 ? 'var(--status-success)' : 'var(--oku-blue)',
+                    backgroundColor: idx === route.waypoints.length - 1 ? 'var(--status-success-solid)' : 'var(--oku-blue-solid)',
                     color: '#FFFFFF',
                     display: 'flex',
                     alignItems: 'center',
@@ -91,7 +91,7 @@ export const TurnByTurnModal: React.FC<{ route: StepFreeRoute; onClose: () => vo
                   {idx + 1}
                 </div>
                 {idx < route.waypoints.length - 1 && (
-                  <div style={{ width: '2px', flex: 1, backgroundColor: '#CBD5E1', margin: '4px 0' }} />
+                  <div style={{ width: '2px', flex: 1, backgroundColor: 'var(--border-strong)', margin: '4px 0' }} />
                 )}
               </div>
 

@@ -6,7 +6,8 @@ import {
   Sparkles, 
   Award, 
   Sliders, 
-  Eye, 
+  Sun, 
+  Moon, 
   Type, 
   Volume2, 
   Phone, 
@@ -22,8 +23,8 @@ export const ProfileSettingsScreen: React.FC = () => {
   const { 
     currentUser, 
     setIsRoleModalOpen, 
-    highContrast, 
-    setHighContrast, 
+    theme,
+    setTheme,
     fontSize, 
     setFontSize,
     voiceGuidanceEnabled,
@@ -129,23 +130,40 @@ export const ProfileSettingsScreen: React.FC = () => {
         <div className="sd-card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <h4 style={{ fontSize: '14.5px', fontWeight: 800, color: 'var(--text-primary)' }}>Universal Accessibility Settings</h4>
 
-          {/* High Contrast */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          {/* Appearance theme */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Eye size={18} color="var(--sd-crimson)" />
+              {theme === 'dark'
+                ? <Moon size={18} color="var(--sd-gold)" />
+                : <Sun size={18} color="var(--sd-crimson)" />}
               <div>
-                <div style={{ fontSize: '13px', fontWeight: 700 }}>High Contrast Mode</div>
+                <div style={{ fontSize: '13px', fontWeight: 700 }}>Appearance</div>
                 <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                  Enhanced contrast ratios for low vision & sunlight readability
+                  Daylight or night-survey theme across every screen
                 </div>
               </div>
             </div>
-            <input 
-              type="checkbox"
-              checked={highContrast}
-              onChange={e => setHighContrast(e.target.checked)}
-              style={{ width: '18px', height: '18px', accentColor: 'var(--sd-crimson)', cursor: 'pointer' }}
-            />
+
+            <div className="theme-switch" role="group" aria-label="Appearance theme">
+              <button
+                type="button"
+                className={theme === 'light' ? 'active' : ''}
+                aria-pressed={theme === 'light'}
+                onClick={() => setTheme('light')}
+              >
+                <Sun size={13} />
+                <span>Light</span>
+              </button>
+              <button
+                type="button"
+                className={theme === 'dark' ? 'active' : ''}
+                aria-pressed={theme === 'dark'}
+                onClick={() => setTheme('dark')}
+              >
+                <Moon size={13} />
+                <span>Dark</span>
+              </button>
+            </div>
           </div>
 
           {/* Font Scaling */}

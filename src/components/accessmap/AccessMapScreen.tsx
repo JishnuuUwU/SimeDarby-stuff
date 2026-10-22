@@ -61,9 +61,9 @@ const LABEL_MAX_WIDTH = 132;
 const LABEL_EDGE_PADDING = 6;
 const LABEL_CHAR_WIDTH = 5.35; // 9.5px / 700 weight glyph estimate
 
-const ZOOM_MIN = 0.85;
-const ZOOM_STEP = 0.15;
-const ZOOM_MAX = 1.45;
+const ZOOM_MIN = 1;
+const ZOOM_STEP = 0.2;
+const ZOOM_MAX = 2;
 
 /* Stable spatial anchors per asset (percentages of the canvas). */
 const MARKER_POSITIONS: Record<string, MarkerAnchor> = {
@@ -150,17 +150,21 @@ const labelRect = (side: LabelSide, cx: number, cy: number, width: number): Rect
 const layoutMarkerLabels = (
   candidates: LabelCandidate[],
   size: { w: number; h: number },
-  zoom: number
+  zoom: number,
+  pan: { x: number; y: number } = { x: 0, y: 0 },
+  obstacles: Rect[] = []
 ): Record<string, LabelSide | null> => {
   const pins = new Map<string, Rect>();
-  const placedLabels: Rect[] = [];
+  // The floating control cluster is reserved space, never a caption target.
+  const placedLabels: Rect[] = [...obstacles];
   const result: Record<string, LabelSide | null> = {};
 
-  // The canvas is scaled about its centre, so map % anchors into screen px.
+  // The canvas is scaled about its centre and panned, so map % anchors into
+  // true screen px — captions must respect the panned viewport, not the raw box.
   const centres = candidates.map(candidate => ({
     ...candidate,
-    cx: ((candidate.x / 100) * size.w - size.w / 2) * zoom + size.w / 2,
-    cy: ((candidate.y / 100) * size.h - size.h / 2) * zoom + size.h / 2
+    cx: ((candidate.x / 100) * size.w - size.w / 2) * zoom + size.w / 2 + pan.x,
+    cy: ((candidate.y / 100) * size.h - size.h / 2) * zoom + size.h / 2 + pan.y
   }));
 
   centres.forEach(({ id, cx, cy }) => {
@@ -233,6 +237,7 @@ const MARKER_LABEL_BASE: React.CSSProperties = {
   overflow: 'hidden',
   textOverflow: 'ellipsis',
   pointerEvents: 'none',
+  color: 'var(--map-label-text)',
   boxShadow: '0 2px 6px rgba(15, 23, 42, 0.22)',
   transition: 'background-color var(--transition-fast)'
 };
@@ -255,21 +260,27 @@ export const AccessMapScreen: React.FC = () => {
   const [isRouteModalOpen, setIsRouteModalOpen] = useState(false);
   const [isTurnByTurnOpen, setIsTurnByTurnOpen] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
+  const zoomRef = useRef(zoomLevel);
+  zoomRef.current = zoomLevel;
 
   const mapViewportRef = useRef<HTMLDivElement>(null);
-  const [mapViewport, setMapViewport] = useState({ w: 380, h: 520 });
+  const [mapViewport, setMapViewport] = useState({ w: 360, h: 480 });
 
-  // Pan state, driven by both pointer and touch drags.
+  // Pan state, driven by pointer drags and two-finger pinch.
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const dragOrigin = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const pinchOrigin = useRef<{ distance: number; zoom: number } | null>(null);
 
-  // Track the real canvas size so caption collision maths stays in screen px.
+  // Track layout size so caption collision maths stays in screen px.
+  // clientWidth/Height are unaffected by the app's CSS zoom (font scaling).
   const measureMapViewport = useCallback(() => {
     const node = mapViewportRef.current;
     if (!node) return;
 
-    const { width, height } = node.getBoundingClientRect();
+    const width = node.clientWidth;
+    const height = node.clientHeight;
     if (width <= 0 || height <= 0) return;
 
     setMapViewport(prev =>
@@ -287,44 +298,111 @@ export const AccessMapScreen: React.FC = () => {
     return () => window.removeEventListener('resize', measureMapViewport);
   }, [measureMapViewport]);
 
-  // Drag / pan events
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true);
-    setDragStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
+  /* Keep the artwork glued to its frame: at 1x there is nothing to pan,
+     at 2x the envelope is half the overflow on each axis. */
+  const clampPan = (pan: { x: number; y: number }, zoom: number) => {
+    const maxX = Math.max(0, (mapViewport.w * (zoom - 1)) / 2);
+    const maxY = Math.max(0, (mapViewport.h * (zoom - 1)) / 2);
+
+    return {
+      x: Math.min(maxX, Math.max(-maxX, pan.x)),
+      y: Math.min(maxY, Math.max(-maxY, pan.y))
+    };
   };
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    setPanOffset({
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y
+  const applyZoom = (next: number) => {
+    const clamped = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Number(next.toFixed(3))));
+    // Keep the ref ahead of React so rapid successive clicks are never dropped.
+    zoomRef.current = clamped;
+    setZoomLevel(clamped);
+    setPanOffset(prev => clampPan(prev, clamped));
+  };
+
+  // Latest handler for the native wheel listener, which is registered once.
+  const applyZoomRef = useRef(applyZoom);
+  applyZoomRef.current = applyZoom;
+
+  // Re-clamp after a resize or a zoom change so no edge is ever exposed.
+  useLayoutEffect(() => {
+    setPanOffset(prev => {
+      const next = clampPan(prev, zoomLevel);
+      return next.x === prev.x && next.y === prev.y ? prev : next;
     });
+  }, [zoomLevel, mapViewport.w, mapViewport.h]);
+
+  // Wheel / trackpad zoom. Non-passive so the page behind the frame never scrolls.
+  useLayoutEffect(() => {
+    const node = mapViewportRef.current;
+    if (!node) return;
+
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      applyZoomRef.current(zoomRef.current - event.deltaY * 0.0016);
+    };
+
+    node.addEventListener('wheel', onWheel, { passive: false });
+    return () => node.removeEventListener('wheel', onWheel);
+  }, []);
+
+  const pointerDistance = () => {
+    const [a, b] = [...pointers.current.values()];
+    return a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0;
   };
 
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    // Markers, zoom controls and route buttons own their own gestures.
+    if ((e.target as HTMLElement).closest('button')) return;
 
-  // Touch support for mobile panning
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 1) {
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      /* Pointer capture is an optimisation; dragging still works without it. */
+    }
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (pointers.current.size === 1) {
+      dragOrigin.current = { x: e.clientX, y: e.clientY, panX: panOffset.x, panY: panOffset.y };
       setIsDragging(true);
-      setDragStart({ x: e.touches[0].clientX - panOffset.x, y: e.touches[0].clientY - panOffset.y });
+    } else if (pointers.current.size === 2) {
+      pinchOrigin.current = { distance: pointerDistance(), zoom: zoomLevel };
+      setIsDragging(false);
     }
   };
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging || e.touches.length !== 1) return;
-    setPanOffset({
-      x: e.touches[0].clientX - dragStart.x,
-      y: e.touches[0].clientY - dragStart.y
-    });
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!pointers.current.has(e.pointerId)) return;
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (pointers.current.size === 2 && pinchOrigin.current) {
+      const ratio = pointerDistance() / Math.max(1, pinchOrigin.current.distance);
+      applyZoom(pinchOrigin.current.zoom * ratio);
+      return;
+    }
+
+    if (!isDragging) return;
+
+    setPanOffset(clampPan({
+      x: dragOrigin.current.panX + (e.clientX - dragOrigin.current.x),
+      y: dragOrigin.current.panY + (e.clientY - dragOrigin.current.y)
+    }, zoomLevel));
   };
 
-  const handleTouchEnd = () => {
-    setIsDragging(false);
-  };
+  const handlePointerEnd = (e: React.PointerEvent<HTMLDivElement>) => {
+    pointers.current.delete(e.pointerId);
+    if (pointers.current.size < 2) pinchOrigin.current = null;
 
+    if (pointers.current.size === 0) {
+      setIsDragging(false);
+    } else if (pointers.current.size === 1) {
+      const [remaining] = [...pointers.current.values()];
+      dragOrigin.current = { x: remaining.x, y: remaining.y, panX: panOffset.x, panY: panOffset.y };
+      setIsDragging(true);
+    }
+
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+  };
   // Filter features by township and active toggles
   const visibleFeatures = allFeatures.filter(f => {
     if (f.townshipId !== activeTownship.id) return false;
@@ -350,11 +428,19 @@ export const AccessMapScreen: React.FC = () => {
       priority: 1
     });
 
-    return layoutMarkerLabels(candidates, mapViewport, zoomLevel);
-  }, [visibleFeatures, selectedMarker, userAnchor.x, userAnchor.y, mapViewport, zoomLevel]);
+    // Reserve the floating control cluster (40px wide, 124px tall, 12px inset)
+    const controlObstacle: Rect = {
+      left: mapViewport.w - 52,
+      right: mapViewport.w - 12,
+      top: 12,
+      bottom: 136
+    };
 
-  const zoomIn = () => setZoomLevel(prev => Math.min(Number((prev + ZOOM_STEP).toFixed(2)), ZOOM_MAX));
-  const zoomOut = () => setZoomLevel(prev => Math.max(Number((prev - ZOOM_STEP).toFixed(2)), ZOOM_MIN));
+    return layoutMarkerLabels(candidates, mapViewport, zoomLevel, panOffset, [controlObstacle]);
+  }, [visibleFeatures, selectedMarker, userAnchor.x, userAnchor.y, mapViewport, zoomLevel, panOffset]);
+
+  const zoomIn = () => applyZoom(zoomRef.current + ZOOM_STEP);
+  const zoomOut = () => applyZoom(zoomRef.current - ZOOM_STEP);
   const resetView = () => {
     setZoomLevel(1);
     setPanOffset({ x: 0, y: 0 });
@@ -587,53 +673,51 @@ export const AccessMapScreen: React.FC = () => {
         style={{
           flex: 1,
           position: 'relative',
-          backgroundColor: '#E7EDE9',
+          backgroundColor: 'var(--map-surface)',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          cursor: isDragging ? 'grabbing' : 'grab',
+          cursor: zoomLevel > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default',
           touchAction: 'none'
         }}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerEnd}
+        onPointerCancel={handlePointerEnd}
       >
         {/* Vector Architectural Blueprint Canvas with Real-Time Pan & Zoom Transform */}
         <div
           style={{
             position: 'absolute',
             inset: 0,
-            background: 'linear-gradient(135deg, #EBF1ED 0%, #DDE6E1 100%)',
+            background: 'linear-gradient(135deg, var(--map-canvas-start) 0%, var(--map-canvas-end) 100%)',
             backgroundSize: '24px 24px',
-            backgroundImage: 'radial-gradient(circle, #CBD5E1 1.2px, transparent 1.2px)',
+            backgroundImage: 'radial-gradient(circle, var(--map-grid) 1.2px, transparent 1.2px)',
             userSelect: 'none',
             transform: `translate3d(${panOffset.x}px, ${panOffset.y}px, 0px) scale(${zoomLevel})`,
             transformOrigin: 'center center',
-            transition: isDragging ? 'none' : 'transform 200ms cubic-bezier(0.16, 1, 0.3, 1)'
+            willChange: 'transform',
+            transition: isDragging ? 'none' : 'transform var(--dur-base) var(--ease-entrance)'
           }}
         >
           <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0 }}>
             <defs>
               {/* Lake water gradient */}
               <linearGradient id="lakeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#C9E6F8" />
-                <stop offset="100%" stopColor="#A8D6F2" />
+                <stop offset="0%" stopColor="var(--map-water-start)" />
+                <stop offset="100%" stopColor="var(--map-water-end)" />
               </linearGradient>
 
               {/* Park green zone gradient */}
               <linearGradient id="parkGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#D9EAD3" />
-                <stop offset="100%" stopColor="#C4DFBD" />
+                <stop offset="0%" stopColor="var(--map-park-start)" />
+                <stop offset="100%" stopColor="var(--map-park-end)" />
               </linearGradient>
 
               {/* Mall Building footprint */}
               <linearGradient id="mallGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#FFFFFF" />
-                <stop offset="100%" stopColor="#F1F5F9" />
+                <stop offset="0%" stopColor="var(--map-building-start)" />
+                <stop offset="100%" stopColor="var(--map-building-end)" />
               </linearGradient>
 
               {/* Glow filter for active route */}
@@ -657,28 +741,28 @@ export const AccessMapScreen: React.FC = () => {
                 <path
                   d="M 40 190 C 130 160, 240 180, 290 240 C 340 300, 310 390, 420 430 L 420 620 L 0 620 Z"
                   fill="url(#lakeGradient)"
-                  stroke="#98CAE9"
+                  stroke="var(--map-water-stroke)"
                   strokeWidth="2.5"
                 />
-                <text x="110" y="380" fill="#6691AD" fontSize="12" fontWeight="800" letterSpacing="1.2">
+                <text x="110" y="380" fill="var(--map-water-label)" fontSize="12" fontWeight="800" letterSpacing="1.2">
                   ELMINA CENTRAL LAKE
                 </text>
 
                 {/* Elmina Lakeside Mall Footprint */}
-                <rect x="25" y="30" width="170" height="90" rx="14" fill="url(#mallGradient)" stroke="#94A3B8" strokeWidth="2" />
-                <text x="38" y="70" fill="#1E293B" fontSize="11" fontWeight="800">
+                <rect x="25" y="30" width="170" height="90" rx="14" fill="url(#mallGradient)" stroke="var(--map-building-stroke)" strokeWidth="2" />
+                <text x="38" y="70" fill="var(--map-building-label)" fontSize="11" fontWeight="800">
                   ELMINA LAKESIDE MALL
                 </text>
-                <text x="38" y="88" fill="#64748B" fontSize="9.5" fontWeight="600">
+                <text x="38" y="88" fill="var(--map-building-sub)" fontSize="10" fontWeight="600">
                   Ground Concourse & Promenade
                 </text>
 
                 {/* UNICEF Inclusive Playground Zone */}
-                <rect x="250" y="40" width="130" height="65" rx="12" fill="#FEF3C7" stroke="#FCD34D" strokeWidth="2" strokeDasharray="4 3" />
-                <text x="262" y="66" fill="#92400E" fontSize="9.5" fontWeight="800">
+                <rect x="250" y="40" width="130" height="65" rx="12" fill="var(--map-service-bg)" stroke="var(--map-service-border)" strokeWidth="2" strokeDasharray="4 3" />
+                <text x="262" y="66" fill="var(--map-service-label)" fontSize="9.5" fontWeight="800">
                   INCLUSIVE PLAYGROUND
                 </text>
-                <text x="262" y="82" fill="#B45309" fontSize="8.5" fontWeight="600">
+                <text x="262" y="82" fill="var(--map-service-sub)" fontSize="9.5" fontWeight="600">
                   UNICEF Certified Universal
                 </text>
 
@@ -686,18 +770,18 @@ export const AccessMapScreen: React.FC = () => {
                 <path
                   d="M 285 240 C 310 270, 325 310, 360 380"
                   fill="none"
-                  stroke="#E2E8F0"
+                  stroke="var(--map-road)"
                   strokeWidth="16"
                   strokeLinecap="round"
                 />
                 <path
                   d="M 285 240 C 310 270, 325 310, 360 380"
                   fill="none"
-                  stroke="#8B1D24"
+                  stroke="var(--sd-crimson-solid)"
                   strokeWidth="3.5"
                   strokeDasharray="5 3"
                 />
-                <text x="235" y="340" fill="#8B1D24" fontSize="10.5" fontWeight="800">
+                <text x="235" y="340" fill="var(--sd-crimson)" fontSize="10.5" fontWeight="800">
                   Rainbow Bridge (Ramped)
                 </text>
 
@@ -705,14 +789,14 @@ export const AccessMapScreen: React.FC = () => {
                 <path
                   d="M 55 120 C 110 120, 150 160, 205 210 S 290 290, 360 380"
                   fill="none"
-                  stroke="#CBD5E1"
+                  stroke="var(--map-dash)"
                   strokeWidth="10"
                   strokeLinecap="round"
                 />
                 <path
                   d="M 55 120 C 110 120, 150 160, 205 210 S 290 290, 360 380"
                   fill="none"
-                  stroke="#FFFFFF"
+                  stroke="var(--map-road-inner)"
                   strokeWidth="6"
                   strokeLinecap="round"
                 />
@@ -720,16 +804,16 @@ export const AccessMapScreen: React.FC = () => {
             ) : (
               <g>
                 {/* KL East Masterplan Layout */}
-                <rect x="30" y="30" width="340" height="120" rx="14" fill="url(#mallGradient)" stroke="#94A3B8" strokeWidth="2" />
-                <text x="45" y="65" fill="#1E293B" fontSize="13" fontWeight="800">
+                <rect x="30" y="30" width="340" height="120" rx="14" fill="url(#mallGradient)" stroke="var(--map-building-stroke)" strokeWidth="2" />
+                <text x="45" y="65" fill="var(--map-building-label)" fontSize="13" fontWeight="800">
                   KL EAST MALL (B1 to L3)
                 </text>
-                <text x="45" y="85" fill="#64748B" fontSize="10" fontWeight="600">
+                <text x="45" y="85" fill="var(--map-building-sub)" fontSize="10" fontWeight="600">
                   Connected to The Ridge Residences & Park
                 </text>
 
-                <rect x="40" y="190" width="320" height="220" rx="14" fill="url(#parkGradient)" stroke="#86EFAC" strokeWidth="2" />
-                <text x="120" y="290" fill="#166534" fontSize="12" fontWeight="800">
+                <rect x="40" y="190" width="320" height="220" rx="14" fill="url(#parkGradient)" stroke="var(--map-park-stroke)" strokeWidth="2" />
+                <text x="120" y="290" fill="var(--map-park-label)" fontSize="12" fontWeight="800">
                   KL EAST FOREST PARK LINK
                 </text>
 
@@ -737,7 +821,7 @@ export const AccessMapScreen: React.FC = () => {
                 <path
                   d="M 60 150 L 60 280 L 220 280 L 220 370"
                   fill="none"
-                  stroke="#CBD5E1"
+                  stroke="var(--map-dash)"
                   strokeWidth="10"
                   strokeLinecap="round"
                 />
@@ -754,10 +838,11 @@ export const AccessMapScreen: React.FC = () => {
                     : "M 60 150 L 60 280 L 220 280 L 220 370"
                   }
                   fill="none"
-                  stroke="rgba(0, 98, 210, 0.35)"
+                  stroke="var(--map-route)"
                   strokeWidth="18"
                   strokeLinecap="round"
                   filter="url(#routeGlow)"
+                  opacity="0.35"
                 />
 
                 {/* Continuous Solid Inner Bed */}
@@ -767,7 +852,7 @@ export const AccessMapScreen: React.FC = () => {
                     : "M 60 150 L 60 280 L 220 280 L 220 370"
                   }
                   fill="none"
-                  stroke="#0062D2"
+                  stroke="var(--map-route)"
                   strokeWidth="7"
                   strokeLinecap="round"
                 />
@@ -779,7 +864,7 @@ export const AccessMapScreen: React.FC = () => {
                     : "M 60 150 L 60 280 L 220 280 L 220 370"
                   }
                   fill="none"
-                  stroke="#FFFFFF"
+                  stroke="var(--map-route-casing)"
                   strokeWidth="3.5"
                   className="animated-route-line"
                   strokeLinecap="round"
@@ -787,19 +872,19 @@ export const AccessMapScreen: React.FC = () => {
 
                 {/* Origin Flag Pin */}
                 <g transform={isElmina ? "translate(55, 120)" : "translate(60, 150)"}>
-                  <circle cx="0" cy="0" r="11" fill="#0062D2" stroke="#FFFFFF" strokeWidth="3" />
-                  <circle cx="0" cy="0" r="4" fill="#FFFFFF" />
-                  <rect x="15" y="-14" width="135" height="24" rx="6" fill="#0F172A" />
-                  <text x="24" y="2" fill="#FFFFFF" fontSize="10.5" fontWeight="800">
+                  <circle cx="0" cy="0" r="11" fill="var(--oku-blue-solid)" stroke="var(--map-pin-bg)" strokeWidth="3" />
+                  <circle cx="0" cy="0" r="4" fill="var(--map-pin-bg)" />
+                  <rect x="15" y="-14" width="135" height="24" rx="6" fill="var(--map-chip)" />
+                  <text x="24" y="2" fill="var(--map-chip-text)" fontSize="10.5" fontWeight="800">
                     START: Drop-off (Step-free)
                   </text>
                 </g>
 
                 {/* Destination Flag Pin */}
                 <g transform={isElmina ? "translate(360, 380)" : "translate(220, 370)"}>
-                  <circle cx="0" cy="0" r="11" fill="#8B1D24" stroke="#FFFFFF" strokeWidth="3" />
-                  <circle cx="0" cy="0" r="4" fill="#FFFFFF" />
-                  <rect x="-140" y="8" width="135" height="24" rx="6" fill="#8B1D24" />
+                  <circle cx="0" cy="0" r="11" fill="var(--sd-crimson-solid)" stroke="var(--map-pin-bg)" strokeWidth="3" />
+                  <circle cx="0" cy="0" r="4" fill="var(--map-pin-bg)" />
+                  <rect x="-140" y="8" width="135" height="24" rx="6" fill="var(--sd-crimson-solid)" />
                   <text x="-132" y="24" fill="#FFFFFF" fontSize="10.5" fontWeight="800">
                     DEST: {activeRoute.destinationName.slice(0, 15)}
                   </text>
@@ -848,7 +933,7 @@ export const AccessMapScreen: React.FC = () => {
                       width: MARKER_DIAMETER,
                       height: MARKER_DIAMETER,
                       borderRadius: '50%',
-                      backgroundColor: '#FFFFFF',
+                      backgroundColor: 'var(--map-pin-bg)',
                       border: `2.5px solid ${accent}`,
                       display: 'flex',
                       alignItems: 'center',
@@ -868,10 +953,11 @@ export const AccessMapScreen: React.FC = () => {
                 {labelSide && (
                   <div
                     aria-hidden="true"
+                    className="map-label"
                     style={{
                       ...MARKER_LABEL_BASE,
                       ...markerLabelPosition(labelSide),
-                      backgroundColor: isSelected ? 'var(--sd-crimson)' : 'rgba(15, 23, 42, 0.9)'
+                      backgroundColor: isSelected ? 'var(--sd-crimson-solid)' : 'var(--map-label-bg)'
                     }}
                   >
                     {MARKER_SHORT_LABELS[feat.id] ?? feat.name}
@@ -904,8 +990,8 @@ export const AccessMapScreen: React.FC = () => {
                 position: 'absolute',
                 inset: '-14px',
                 borderRadius: '50%',
-                backgroundColor: 'rgba(0, 98, 210, 0.16)',
-                border: '1.5px solid rgba(0, 98, 210, 0.32)'
+                backgroundColor: 'var(--oku-blue-light)',
+                border: '1.5px solid var(--oku-blue-border)'
               }}
             />
 
@@ -915,12 +1001,12 @@ export const AccessMapScreen: React.FC = () => {
                 width: '100%',
                 height: '100%',
                 borderRadius: '50%',
-                backgroundColor: 'var(--oku-blue)',
-                border: '2.5px solid #FFFFFF',
+                backgroundColor: 'var(--oku-blue-solid)',
+                border: '2.5px solid var(--map-pin-bg)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(0, 98, 210, 0.42)'
+                boxShadow: '0 4px 12px var(--oku-blue-glow)'
               }}
             >
               <Locate size={18} color="#FFFFFF" />
@@ -929,10 +1015,11 @@ export const AccessMapScreen: React.FC = () => {
             {labelSides['user-location'] && (
               <div
                 aria-hidden="true"
+                className="map-label"
                 style={{
                   ...MARKER_LABEL_BASE,
                   ...markerLabelPosition(labelSides['user-location']),
-                  backgroundColor: 'var(--oku-blue)'
+                  backgroundColor: 'var(--oku-blue-solid)'
                 }}
               >
                 {USER_LABEL}
@@ -986,7 +1073,7 @@ export const AccessMapScreen: React.FC = () => {
               className="map-control-btn"
               onClick={zoomIn}
               disabled={isMaxZoom}
-              aria-label="Zoom in"
+              aria-label={`Zoom in${isMaxZoom ? ' (maximum)' : ''}`}
               title="Zoom in"
             >
               <Plus size={17} strokeWidth={2.5} />
@@ -999,7 +1086,7 @@ export const AccessMapScreen: React.FC = () => {
               className="map-control-btn"
               onClick={zoomOut}
               disabled={isMinZoom}
-              aria-label="Zoom out"
+              aria-label={`Zoom out${isMinZoom ? ' (fit to screen)' : ''}`}
               title="Zoom out"
             >
               <Minus size={17} strokeWidth={2.5} />

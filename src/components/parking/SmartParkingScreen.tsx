@@ -119,7 +119,7 @@ export const SmartParkingScreen: React.FC = () => {
             onClick={() => setFilterMode('available')}
             style={{
               backgroundColor: 'var(--status-success-bg)',
-              border: filterMode === 'available' ? '2px solid var(--status-success)' : '1px solid #A7F3D0',
+              border: filterMode === 'available' ? '2px solid var(--status-success)' : '1px solid var(--success-border)',
               borderRadius: 'var(--radius-sm)',
               padding: '10px',
               cursor: 'pointer',
@@ -140,7 +140,7 @@ export const SmartParkingScreen: React.FC = () => {
             onClick={() => setFilterMode('alerts')}
             style={{
               backgroundColor: 'var(--status-error-bg)',
-              border: filterMode === 'alerts' ? '2px solid var(--status-error)' : '1px solid #FECACA',
+              border: filterMode === 'alerts' ? '2px solid var(--status-error)' : '1px solid var(--danger-border)',
               borderRadius: 'var(--radius-sm)',
               padding: '10px',
               cursor: 'pointer',
@@ -186,8 +186,8 @@ export const SmartParkingScreen: React.FC = () => {
         {isSecurityOfficer && (
           <div 
             style={{
-              backgroundColor: '#0F172A',
-              color: '#FFFFFF',
+              backgroundColor: 'var(--bg-inverse)',
+              color: 'var(--text-inverse)',
               borderRadius: 'var(--radius-sm)',
               padding: '10px 14px',
               display: 'flex',
@@ -198,7 +198,7 @@ export const SmartParkingScreen: React.FC = () => {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <ShieldAlert size={16} color="var(--status-error)" />
+              <ShieldAlert size={16} color="var(--sd-gold)" />
               <span><strong>Polis Bantuan Console:</strong> Direct auxiliary dispatch & citation controls active.</span>
             </div>
           </div>
@@ -221,9 +221,9 @@ export const SmartParkingScreen: React.FC = () => {
                   border: isMisuse 
                     ? '2px solid var(--status-error)' 
                     : isAvailable 
-                    ? '1.5px solid #A7F3D0' 
+                    ? '1.5px solid var(--success-border)' 
                     : 'var(--border-light)',
-                  backgroundColor: isMisuse ? '#FFFBFB' : 'var(--bg-card)',
+                  backgroundColor: isMisuse ? 'var(--danger-bg)' : 'var(--bg-card)',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '12px'
@@ -237,7 +237,7 @@ export const SmartParkingScreen: React.FC = () => {
                         width: '44px',
                         height: '44px',
                         borderRadius: '12px',
-                        backgroundColor: isAvailable ? 'var(--status-success)' : isMisuse ? 'var(--status-error)' : 'var(--oku-blue)',
+                        backgroundColor: isAvailable ? 'var(--status-success-solid)' : isMisuse ? 'var(--status-error-solid)' : 'var(--oku-blue-solid)',
                         color: '#FFFFFF',
                         display: 'flex',
                         flexDirection: 'column',
@@ -270,7 +270,7 @@ export const SmartParkingScreen: React.FC = () => {
                     </div>
                   </div>
 
-                  <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 600 }}>
+                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600 }}>
                     {bay.lastUpdated}
                   </span>
                 </div>
@@ -312,9 +312,9 @@ export const SmartParkingScreen: React.FC = () => {
                   </div>
 
                   {bay.telemetry.detectedPlate && (
-                    <div style={{ gridColumn: 'span 2', backgroundColor: isMisuse ? '#FEE2E2' : '#EFF6FF', padding: '6px 10px', borderRadius: '6px' }}>
+                    <div style={{ gridColumn: 'span 2', backgroundColor: isMisuse ? 'var(--danger-bg)' : 'var(--info-bg)', padding: '6px 10px', borderRadius: '6px' }}>
                       <span style={{ color: 'var(--text-secondary)', fontSize: '10.5px', fontWeight: 700 }}>LPR Camera Detected Plate</span>
-                      <div style={{ fontWeight: 800, color: isMisuse ? 'var(--status-error)' : 'var(--oku-blue)' }}>
+                      <div style={{ fontWeight: 800, color: isMisuse ? 'var(--danger-text)' : 'var(--oku-blue)' }}>
                         {bay.telemetry.detectedPlate}
                       </div>
                     </div>
@@ -326,7 +326,7 @@ export const SmartParkingScreen: React.FC = () => {
                   <div 
                     style={{
                       backgroundColor: 'var(--status-error-bg)',
-                      border: '1px solid #FECACA',
+                      border: '1px solid var(--danger-border)',
                       borderRadius: 'var(--radius-sm)',
                       padding: '10px 12px',
                       display: 'flex',
@@ -384,7 +384,7 @@ export const SmartParkingScreen: React.FC = () => {
                   {isAvailable && (
                     <button 
                       className="btn-primary"
-                      style={{ flex: 1, padding: '9px 12px', fontSize: '12px', backgroundColor: 'var(--oku-blue)' }}
+                      style={{ flex: 1, padding: '9px 12px', fontSize: '12px', backgroundColor: 'var(--oku-blue-solid)' }}
                       onClick={() => handleNavigateToBay(bay)}
                     >
                       <Navigation size={14} />

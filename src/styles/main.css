@@ -85,8 +85,8 @@ html, body {
 }
 
 .preset-btn.active {
-  background: var(--sd-crimson);
-  color: #FFFFFF;
+  background: var(--sd-crimson-solid);
+  color: var(--text-on-crimson);
   border-color: var(--sd-crimson-light);
   box-shadow: 0 2px 8px var(--sd-crimson-glow);
 }
@@ -151,8 +151,8 @@ html, body {
 -------------------------------------------------------------- */
 .android-status-bar {
   height: 38px;
-  background-color: var(--sd-crimson);
-  color: #FFFFFF;
+  background-color: var(--sd-crimson-solid);
+  color: var(--text-on-crimson);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -176,8 +176,8 @@ html, body {
    SIME DARBY PROPERTY APP HEADER
 -------------------------------------------------------------- */
 .app-header {
-  background: linear-gradient(180deg, var(--sd-crimson) 0%, #76141A 100%);
-  color: #FFFFFF;
+  background: linear-gradient(180deg, var(--sd-crimson-solid) 0%, #76141A 100%);
+  color: var(--text-on-crimson);
   padding: 10px 16px 12px 16px;
   display: flex;
   flex-direction: column;
@@ -329,16 +329,40 @@ html, body {
   scroll-behavior: smooth;
 }
 
-/* Screen transition effect */
+/* Screen transition effect — one deliberate entrance, no bounce */
 .tab-screen-container {
   min-height: 100%;
-  animation: tabFadeIn 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: screenEnter var(--dur-base) var(--ease-entrance) both;
 }
 
-@keyframes tabFadeIn {
+@keyframes screenEnter {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(10px) scale(0.996);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Cards rise in a short stagger; only the first six are delayed so long
+   feeds never feel sluggish. */
+.tab-screen-container .sd-card {
+  animation: cardRise var(--dur-slow) var(--ease-entrance) backwards;
+}
+
+.tab-screen-container .sd-card:nth-child(1) { animation-delay: 20ms; }
+.tab-screen-container .sd-card:nth-child(2) { animation-delay: 55ms; }
+.tab-screen-container .sd-card:nth-child(3) { animation-delay: 90ms; }
+.tab-screen-container .sd-card:nth-child(4) { animation-delay: 125ms; }
+.tab-screen-container .sd-card:nth-child(5) { animation-delay: 160ms; }
+.tab-screen-container .sd-card:nth-child(6) { animation-delay: 195ms; }
+
+@keyframes cardRise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -405,13 +429,20 @@ html, body {
   color: var(--sd-crimson);
   transform: translateY(-2px);
   box-shadow: 0 2px 6px rgba(139, 29, 36, 0.12);
+  animation: tabIconSelect 360ms var(--ease-spring);
+}
+
+@keyframes tabIconSelect {
+  0% { transform: translateY(0) scale(0.92); }
+  60% { transform: translateY(-3px) scale(1.05); }
+  100% { transform: translateY(-2px) scale(1); }
 }
 
 .tab-badge {
   position: absolute;
   top: 1px;
   right: 10px;
-  background-color: var(--status-error);
+  background-color: var(--status-error-solid);
   color: #FFFFFF;
   font-size: 10px;
   font-weight: 800;
@@ -422,9 +453,9 @@ html, body {
   align-items: center;
   justify-content: center;
   padding: 0 4px;
-  border: 1.5px solid #FFFFFF;
+  border: 1.5px solid var(--bg-card);
   box-shadow: 0 2px 4px rgba(239, 68, 68, 0.35);
-  animation: badgePop 300ms var(--transition-spring);
+  animation: badgePop 300ms var(--ease-spring);
 }
 
 @keyframes badgePop {
@@ -447,7 +478,7 @@ html, body {
   user-select: none;
   border-bottom-left-radius: inherit;
   border-bottom-right-radius: inherit;
-  border-top: 1px solid rgba(0, 0, 0, 0.03);
+  border-top: 1px solid var(--border-subtle);
 }
 
 .nav-bar-btn {
@@ -495,9 +526,9 @@ html, body {
 }
 
 .badge-verified-resident {
-  background-color: var(--status-success-bg);
-  color: var(--status-success);
-  border: 1px solid #A7F3D0;
+  background-color: var(--success-bg);
+  color: var(--success-text);
+  border: 1px solid var(--success-border);
   font-size: 11px;
   font-weight: 700;
   padding: 3px 9px;
@@ -508,9 +539,9 @@ html, body {
 }
 
 .badge-warning {
-  background-color: var(--status-warning-bg);
-  color: var(--status-warning);
-  border: 1px solid #FDE68A;
+  background-color: var(--warning-bg);
+  color: var(--warning-text);
+  border: 1px solid var(--warning-border);
   font-size: 11px;
   font-weight: 700;
   padding: 3px 9px;
@@ -521,9 +552,9 @@ html, body {
 }
 
 .badge-danger {
-  background-color: var(--status-error-bg);
-  color: var(--status-error);
-  border: 1px solid #FECACA;
+  background-color: var(--danger-bg);
+  color: var(--danger-text);
+  border: 1px solid var(--danger-border);
   font-size: 11px;
   font-weight: 700;
   padding: 3px 9px;
@@ -537,8 +568,8 @@ html, body {
    BUTTONS (TACTILE & ERGONOMIC)
 -------------------------------------------------------------- */
 .btn-primary {
-  background-color: var(--sd-crimson);
-  color: #FFFFFF;
+  background-color: var(--sd-crimson-solid);
+  color: var(--text-on-crimson);
   border: none;
   font-size: 14px;
   font-weight: 700;
@@ -587,7 +618,7 @@ html, body {
 }
 
 .btn-danger {
-  background-color: var(--status-error);
+  background-color: var(--status-error-solid);
   color: #FFFFFF;
   border: none;
   font-size: 14px;
@@ -604,7 +635,7 @@ html, body {
 }
 
 .btn-danger:hover {
-  background-color: #DC2626;
+  background-color: #991B1B;
 }
 
 .btn-danger:active {
@@ -644,7 +675,7 @@ html, body {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(15, 23, 42, 0.65);
+  background-color: var(--overlay-scrim);
   backdrop-filter: blur(6px);
   z-index: 100;
   display: flex;
@@ -661,7 +692,7 @@ html, body {
   padding: 18px 20px 28px 20px;
   box-shadow: var(--shadow-elevated);
   overflow-y: auto;
-  animation: sheetSpringUp 320ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: sheetSpringUp var(--dur-slow) var(--ease-entrance);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -670,7 +701,7 @@ html, body {
 .sheet-handle {
   width: 42px;
   height: 5px;
-  background-color: #CBD5E1;
+  background-color: var(--border-strong);
   border-radius: 3px;
   align-self: center;
   margin-bottom: 2px;
@@ -707,27 +738,26 @@ html, body {
 
 .toast-item {
   pointer-events: auto;
-  background-color: #0F172A;
-  color: #FFFFFF;
+  background-color: var(--toast-bg);
+  color: var(--toast-text);
   padding: 12px 14px;
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  border-left: 4px solid var(--sd-crimson);
-  animation: toastSpringDown 280ms cubic-bezier(0.16, 1, 0.3, 1);
+  border-left: 4px solid var(--sd-crimson-solid);
+  animation: toastSpringDown 280ms var(--ease-entrance);
 }
 
 .toast-item.toast-success {
-  border-left-color: var(--status-success);
+  border-left-color: var(--on-dark-success);
 }
 
 .toast-item.toast-security {
-  border-left-color: var(--status-error);
   background-color: #1A0E10;
-  border: 1px solid rgba(239, 68, 68, 0.4);
-  border-left: 4px solid var(--status-error);
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  border-left: 4px solid var(--on-dark-danger);
 }
 
 .toast-title {
@@ -738,7 +768,7 @@ html, body {
 
 .toast-msg {
   font-size: 12px;
-  color: #CBD5E1;
+  color: var(--toast-muted);
   line-height: 1.35;
 }
 
@@ -920,13 +950,146 @@ html, body {
 }
 
 /* -------------------------------------------------------------
+   THEME TRANSITION — surfaces cross-fade instead of snapping
+-------------------------------------------------------------- */
+.app-content,
+.bottom-tab-bar,
+.android-nav-bar,
+.bottom-sheet,
+.sd-card {
+  transition:
+    background-color var(--dur-base) var(--ease-standard),
+    border-color var(--dur-base) var(--ease-standard),
+    color var(--dur-base) var(--ease-standard),
+    box-shadow var(--dur-base) var(--ease-standard);
+}
+
+/* -------------------------------------------------------------
+   THEME SWITCH (Light / Dark)
+-------------------------------------------------------------- */
+.theme-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  background-color: var(--bg-subtle);
+  border: var(--border-light);
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.theme-switch button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease-standard),
+    color var(--dur-fast) var(--ease-standard),
+    box-shadow var(--dur-fast) var(--ease-standard);
+}
+
+.theme-switch button:hover {
+  color: var(--text-primary);
+}
+
+.theme-switch button.active {
+  background-color: var(--bg-card);
+  color: var(--sd-crimson);
+  box-shadow: var(--shadow-sm);
+}
+
+.theme-switch button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+/* Icon swap: a single quarter-turn, never a spin */
+.theme-toggle-icon {
+  display: inline-flex;
+  animation: themeIconSwap var(--dur-base) var(--ease-spring);
+}
+
+@keyframes themeIconSwap {
+  from {
+    transform: rotate(-45deg) scale(0.55);
+    opacity: 0;
+  }
+  to {
+    transform: rotate(0deg) scale(1);
+    opacity: 1;
+  }
+}
+
+/* -------------------------------------------------------------
+   MOTION — MAP
+-------------------------------------------------------------- */
+/* Pins drop in once on mount; existing pins never re-animate on filter toggles */
+.map-marker-btn {
+  animation: pinDrop var(--dur-slow) var(--ease-spring) backwards;
+}
+
+@keyframes pinDrop {
+  from {
+    opacity: 0;
+    transform: scale(0.45);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.map-label {
+  animation: labelFade var(--dur-fast) var(--ease-standard) backwards;
+}
+
+@keyframes labelFade {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* -------------------------------------------------------------
+   FOCUS VISIBILITY (KEYBOARD / SWITCH ACCESS)
+-------------------------------------------------------------- */
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* -------------------------------------------------------------
    REDUCED MOTION (VESTIBULAR / LOW-VISION COMFORT)
 -------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
   .gps-halo,
   .animated-route-line,
   .pulse-sensor,
   .pulse-violation {
-    animation: none;
+    animation: none !important;
   }
 }

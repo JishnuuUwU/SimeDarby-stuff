@@ -3,7 +3,8 @@ import { useApp } from '../../context/AppContext';
 import { 
   Volume2, 
   VolumeX, 
-  Eye, 
+  Sun, 
+  Moon, 
   Type, 
   MapPin, 
   ChevronDown, 
@@ -18,8 +19,8 @@ export const Header: React.FC = () => {
     activeTownship, 
     currentUser, 
     setIsRoleModalOpen,
-    highContrast, 
-    setHighContrast,
+    theme,
+    toggleTheme,
     fontSize, 
     setFontSize,
     voiceGuidanceEnabled, 
@@ -105,12 +106,15 @@ export const Header: React.FC = () => {
           </button>
 
           <button 
-            className={`header-icon-btn ${highContrast ? 'active' : ''}`}
-            onClick={() => setHighContrast(!highContrast)}
-            title="Toggle High Contrast Mode for Low Vision"
-            aria-label="Toggle High Contrast Mode"
+            className={`header-icon-btn ${theme === 'dark' ? 'active' : ''}`}
+            onClick={toggleTheme}
+            title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+            aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+            aria-pressed={theme === 'dark'}
           >
-            <Eye size={18} />
+            <span className="theme-toggle-icon" key={theme}>
+              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            </span>
           </button>
         </div>
       </div>

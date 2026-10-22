@@ -1,6 +1,9 @@
 :root {
+  color-scheme: light;
+
   /* Sime Darby Property Brand Palette */
   --sd-crimson: #8B1D24;
+  --sd-crimson-solid: #8B1D24;      /* filled surfaces that always carry white text */
   --sd-crimson-dark: #641117;
   --sd-crimson-light: #A32029;
   --sd-crimson-subtle: #FDF2F3;
@@ -23,36 +26,78 @@
   /* Typography Colors */
   --text-primary: #0F172A;
   --text-secondary: #475569;
-  --text-tertiary: #94A3B8;
+  --text-tertiary: #64748B;
   --text-on-crimson: #FFFFFF;
   --text-on-gold: #2A2013;
 
   /* Universal Accessibility & OKU Accent Colors (MS 1184 Compliant) */
   --oku-blue: #0062D2;
+  --oku-blue-solid: #0062D2;
   --oku-blue-dark: #004BA4;
   --oku-blue-light: #EEF5FD;
   --oku-blue-border: #BCD5F7;
   --oku-blue-glow: rgba(0, 98, 210, 0.2);
 
-  --tactile-yellow: #D97706;
+  --tactile-yellow: #B45309;
   --tactile-yellow-bg: #FFFBEB;
   --tactile-yellow-border: #FDE68A;
 
-  --elevator-emerald: #059669;
+  --elevator-emerald: #047857;
   --elevator-emerald-bg: #ECFDF5;
   --elevator-emerald-border: #A7F3D0;
 
-  --restroom-violet: #7C3AED;
+  --restroom-violet: #6D28D9;
   --restroom-violet-bg: #F5F3FF;
   --restroom-violet-border: #DDD6FE;
 
   /* Semantic status */
-  --status-success: #10B981;
+  --status-success: #047857;
+  --status-success-solid: #047857;
   --status-success-bg: #ECFDF5;
-  --status-warning: #F59E0B;
+  --status-warning: #B45309;
+  --status-warning-solid: #B45309;
   --status-warning-bg: #FFFBEB;
-  --status-error: #EF4444;
+  --status-error: #B91C1C;
+  --status-error-solid: #B91C1C;
   --status-error-bg: #FEF2F2;
+
+  /* Semantic surfaces (tinted panels, badges, inline alerts) */
+  --success-bg: #ECFDF5;
+  --success-border: #A7F3D0;
+  --success-text: #047857;
+  --warning-bg: #FFFBEB;
+  --warning-border: #FDE68A;
+  --warning-text: #92400E;
+  --danger-bg: #FEF2F2;
+  --danger-border: #FECACA;
+  --danger-text: #B91C1C;
+  --info-bg: #EFF6FF;
+  --info-border: #BFDBFE;
+  --info-text: #1D4ED8;
+
+  /* Inverted panels (resident pass, control room strips) */
+  --bg-inverse: #0F172A;
+  --bg-inverse-elevated: #181E26;
+  --text-inverse: #FFFFFF;
+  --text-inverse-muted: #CBD5E1;
+
+  /* Status accents that must stay legible on inverse/toast surfaces,
+     which remain dark in both themes. */
+  --on-dark-success: #34D399;
+  --on-dark-warning: #FBBF24;
+  --on-dark-danger: #F87171;
+  --on-dark-info: #6FB6FF;
+
+  /* Lines & overlays */
+  --border-color: #E2E8F0;
+  --border-strong: #CBD5E1;
+  --overlay-scrim: rgba(15, 23, 42, 0.65);
+  --glass-bg: rgba(255, 255, 255, 0.94);
+  --glass-border: rgba(255, 255, 255, 0.55);
+  --toast-bg: #0F172A;
+  --toast-text: #FFFFFF;
+  --toast-muted: #CBD5E1;
+  --focus-ring: #8B1D24;
 
   /* Elevation Shadows (Tuned layered ambient shadows) */
   --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
@@ -69,9 +114,9 @@
   --radius-xl: 24px;
   --radius-full: 9999px;
 
-  --border-light: 1px solid #E2E8F0;
+  --border-light: 1px solid var(--border-color);
   --border-subtle: 1px solid #F1F5F9;
-  --border-focus: 2px solid #8B1D24;
+  --border-focus: 2px solid var(--sd-crimson);
 
   /* Typography */
   --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -81,46 +126,191 @@
   --header-height: 64px;
   --bottom-bar-height: 70px;
 
-  /* Motion & Haptic Transitions */
-  --transition-fast: 140ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-normal: 240ms cubic-bezier(0.16, 1, 0.3, 1);
-  --transition-spring: 360ms cubic-bezier(0.34, 1.56, 0.64, 1);
-  --transition-bounce: 450ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  /* Motion scale — one brand curve per intent */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-entrance: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-linear: linear;
+
+  --dur-instant: 90ms;
+  --dur-fast: 160ms;
+  --dur-base: 240ms;
+  --dur-slow: 380ms;
+
+  /* Legacy aliases kept so existing transitions stay coherent */
+  --transition-fast: var(--dur-fast) var(--ease-standard);
+  --transition-normal: var(--dur-base) var(--ease-entrance);
+  --transition-spring: 360ms var(--ease-spring);
+  --transition-bounce: 450ms var(--ease-spring);
+
+  /* Cartography — light "daylight survey" palette */
+  --map-surface: #E7EDE9;
+  --map-canvas-start: #EBF1ED;
+  --map-canvas-end: #DDE6E1;
+  --map-grid: #CBD5E1;
+  --map-water-start: #C9E6F8;
+  --map-water-end: #A8D6F2;
+  --map-water-stroke: #98CAE9;
+  --map-water-label: #2F5B78;
+  --map-park-start: #D9EAD3;
+  --map-park-end: #C4DFBD;
+  --map-park-stroke: #86EFAC;
+  --map-park-label: #166534;
+  --map-building-start: #FFFFFF;
+  --map-building-end: #F1F5F9;
+  --map-building-stroke: #94A3B8;
+  --map-building-label: #1E293B;
+  --map-building-sub: #55657A;
+  --map-road: #E2E8F0;
+  --map-road-inner: #FFFFFF;
+  --map-dash: #CBD5E1;
+  --map-route: #0062D2;
+  --map-route-casing: #FFFFFF;
+  --map-chip: #0F172A;
+  --map-chip-text: #FFFFFF;
+  --map-pin-bg: #FFFFFF;
+  --map-label-bg: rgba(15, 23, 42, 0.9);
+  --map-label-text: #FFFFFF;
+  --map-service-bg: #FEF3C7;
+  --map-service-border: #FCD34D;
+  --map-service-label: #92400E;
+  --map-service-sub: #8A4B0F;
 }
 
-/* High Contrast Mode for Low Vision / OKU */
-[data-high-contrast="true"] {
-  --bg-app: #000000;
-  --bg-card: #111418;
-  --bg-card-elevated: #181D24;
-  --bg-subtle: #1E252E;
-  --bg-tertiary: #2D3748;
+/* -------------------------------------------------------------
+   DARK THEME — "Night Survey"
+   Brand crimson stays solid on filled surfaces; text/icons use the
+   lighter accent so they clear WCAG AA on carbon surfaces.
+-------------------------------------------------------------- */
+[data-theme="dark"] {
+  color-scheme: dark;
 
-  --text-primary: #FFFFFF;
-  --text-secondary: #E2E8F0;
-  --text-tertiary: #CBD5E1;
+  --sd-crimson: #F06670;
+  --sd-crimson-solid: #8B1D24;
+  --sd-crimson-dark: #641117;
+  --sd-crimson-light: #F58A92;
+  --sd-crimson-subtle: rgba(240, 102, 112, 0.14);
+  --sd-crimson-border: rgba(240, 102, 112, 0.38);
+  --sd-crimson-glow: rgba(240, 102, 112, 0.26);
 
-  --border-light: 2px solid #FFFFFF;
-  --border-subtle: 1px solid #94A3B8;
+  --sd-gold: #D9BE94;
+  --sd-gold-light: #EBD9BC;
+  --sd-gold-dark: #B39568;
+  --sd-gold-subtle: rgba(217, 190, 148, 0.12);
+  --sd-gold-glow: rgba(217, 190, 148, 0.2);
 
-  --sd-crimson: #E02835;
-  --sd-crimson-subtle: #2A080A;
-  --sd-crimson-border: #FF6672;
+  --bg-app: #0B0F14;
+  --bg-card: #141A21;
+  --bg-card-elevated: #1A222B;
+  --bg-subtle: #1E2731;
+  --bg-tertiary: #2A3441;
 
-  --sd-gold: #FFD580;
-  --sd-gold-subtle: #2B2314;
+  --text-primary: #F6F8FA;
+  --text-secondary: #C3CDD8;
+  --text-tertiary: #9AA7B6;
+  --text-on-crimson: #FFFFFF;
+  --text-on-gold: #241B10;
 
-  --oku-blue: #38BDF8;
-  --oku-blue-light: #082F49;
-  --oku-blue-border: #7DD3FC;
+  --oku-blue: #6FB6FF;
+  --oku-blue-solid: #0062D2;
+  --oku-blue-dark: #4C9BFF;
+  --oku-blue-light: rgba(111, 182, 255, 0.14);
+  --oku-blue-border: rgba(111, 182, 255, 0.38);
+  --oku-blue-glow: rgba(111, 182, 255, 0.24);
 
-  --tactile-yellow: #FDE047;
-  --tactile-yellow-bg: #422006;
-  --tactile-yellow-border: #FEF08A;
+  --tactile-yellow: #FBBF24;
+  --tactile-yellow-bg: rgba(251, 191, 36, 0.14);
+  --tactile-yellow-border: rgba(251, 191, 36, 0.36);
 
-  --status-success: #4ADE80;
+  --elevator-emerald: #34D399;
+  --elevator-emerald-bg: rgba(52, 211, 153, 0.14);
+  --elevator-emerald-border: rgba(52, 211, 153, 0.36);
+
+  --restroom-violet: #B49CFF;
+  --restroom-violet-bg: rgba(180, 156, 255, 0.14);
+  --restroom-violet-border: rgba(180, 156, 255, 0.36);
+
+  --status-success: #34D399;
+  --status-success-solid: #047857;
+  --status-success-bg: rgba(52, 211, 153, 0.14);
   --status-warning: #FBBF24;
+  --status-warning-solid: #B45309;
+  --status-warning-bg: rgba(251, 191, 36, 0.14);
   --status-error: #F87171;
+  --status-error-solid: #B91C1C;
+  --status-error-bg: rgba(248, 113, 113, 0.14);
+
+  --success-bg: rgba(52, 211, 153, 0.14);
+  --success-border: rgba(52, 211, 153, 0.36);
+  --success-text: #6EE7B7;
+  --warning-bg: rgba(251, 191, 36, 0.14);
+  --warning-border: rgba(251, 191, 36, 0.36);
+  --warning-text: #FCD34D;
+  --danger-bg: rgba(248, 113, 113, 0.14);
+  --danger-border: rgba(248, 113, 113, 0.36);
+  --danger-text: #FCA5A5;
+  --info-bg: rgba(111, 182, 255, 0.12);
+  --info-border: rgba(111, 182, 255, 0.34);
+  --info-text: #93C5FD;
+
+  /* Inverse panels stay dark in both themes: a control-room strip with
+     white text must never turn into a full-screen light block at night. */
+  --bg-inverse: #1A222B;
+  --bg-inverse-elevated: #232C37;
+  --text-inverse: #F6F8FA;
+  --text-inverse-muted: #C3CDD8;
+
+  --border-color: #2A3441;
+  --border-strong: #3A4757;
+  --overlay-scrim: rgba(2, 6, 12, 0.74);
+  --glass-bg: rgba(20, 26, 33, 0.94);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --toast-bg: #1E2731;
+  --toast-text: #F6F8FA;
+  --toast-muted: #C3CDD8;
+  --focus-ring: #F06670;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px -1px rgba(0, 0, 0, 0.5), 0 2px 6px -1px rgba(0, 0, 0, 0.34);
+  --shadow-lg: 0 14px 28px -6px rgba(0, 0, 0, 0.58), 0 4px 10px -2px rgba(0, 0, 0, 0.36);
+  --shadow-crimson: 0 8px 24px -4px rgba(240, 102, 112, 0.22);
+  --shadow-elevated: 0 24px 36px -8px rgba(0, 0, 0, 0.68), 0 10px 16px -6px rgba(0, 0, 0, 0.42);
+
+  --border-subtle: 1px solid rgba(255, 255, 255, 0.07);
+
+  /* Cartography — night survey palette */
+  --map-surface: #0C151B;
+  --map-canvas-start: #101E1B;
+  --map-canvas-end: #0A1418;
+  --map-grid: rgba(148, 163, 184, 0.22);
+  --map-water-start: #0C2A3D;
+  --map-water-end: #0A2130;
+  --map-water-stroke: #14506F;
+  --map-water-label: #7FB6D6;
+  --map-park-start: #12251A;
+  --map-park-end: #0E1F16;
+  --map-park-stroke: #1F6B43;
+  --map-park-label: #86EFAC;
+  --map-building-start: #1B2733;
+  --map-building-end: #16212B;
+  --map-building-stroke: #33475A;
+  --map-building-label: #E2E8F0;
+  --map-building-sub: #94A3B8;
+  --map-road: #223040;
+  --map-road-inner: #2A3A4A;
+  --map-dash: #475569;
+  --map-route: #4C9BFF;
+  --map-route-casing: #0B1218;
+  --map-chip: #0B1218;
+  --map-chip-text: #F6F8FA;
+  --map-pin-bg: #F8FAFC;
+  --map-label-bg: rgba(2, 6, 23, 0.92);
+  --map-label-text: #F6F8FA;
+  --map-service-bg: rgba(251, 191, 36, 0.12);
+  --map-service-border: rgba(251, 191, 36, 0.4);
+  --map-service-label: #FCD34D;
+  --map-service-sub: #FBBF24;
 }
 
 :root {

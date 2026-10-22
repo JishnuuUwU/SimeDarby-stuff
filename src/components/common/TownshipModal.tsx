@@ -56,7 +56,7 @@ export const TownshipModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                     width: '38px',
                     height: '38px',
                     borderRadius: '8px',
-                    backgroundColor: isSelected ? 'var(--sd-crimson)' : 'var(--bg-subtle)',
+                    backgroundColor: isSelected ? 'var(--sd-crimson-solid)' : 'var(--bg-subtle)',
                     color: isSelected ? '#FFFFFF' : 'var(--sd-crimson)',
                     display: 'flex',
                     alignItems: 'center',

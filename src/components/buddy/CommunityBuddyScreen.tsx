@@ -59,7 +59,7 @@ export const CommunityBuddyScreen: React.FC = () => {
         return <ShoppingBag size={18} color="var(--restroom-violet)" />;
       case 'other':
       default:
-        return <HelpCircle size={18} color="#6B7280" />;
+        return <HelpCircle size={18} color="var(--text-tertiary)" />;
     }
   };
 
@@ -267,7 +267,7 @@ export const CommunityBuddyScreen: React.FC = () => {
         <div 
           style={{
             backgroundColor: isResident ? 'var(--status-success-bg)' : 'var(--status-warning-bg)',
-            border: isResident ? '1px solid #A7F3D0' : '1px solid #FDE68A',
+            border: isResident ? '1px solid var(--success-border)' : '1px solid var(--warning-border)',
             borderRadius: 'var(--radius-sm)',
             padding: '10px 12px',
             display: 'flex',
@@ -281,7 +281,7 @@ export const CommunityBuddyScreen: React.FC = () => {
               width: '32px',
               height: '32px',
               borderRadius: '8px',
-              backgroundColor: isResident ? '#10B981' : '#F59E0B',
+              backgroundColor: isResident ? 'var(--status-success-solid)' : 'var(--status-warning-solid)',
               color: '#FFFFFF',
               display: 'flex',
               alignItems: 'center',
@@ -309,7 +309,7 @@ export const CommunityBuddyScreen: React.FC = () => {
               Switch Role
             </button>
           ) : (
-            <span style={{ fontSize: '11px', fontWeight: 800, color: '#047857', backgroundColor: '#D1FAE5', padding: '2px 8px', borderRadius: '4px' }}>
+            <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--success-text)', backgroundColor: 'var(--success-bg)', padding: '2px 8px', borderRadius: '4px' }}>
               Precinct Match
             </span>
           )}
@@ -324,7 +324,7 @@ export const CommunityBuddyScreen: React.FC = () => {
               padding: '6px 8px',
               border: 'none',
               borderRadius: 'var(--radius-full)',
-              background: activeSubTab === 'requests' ? '#FFFFFF' : 'transparent',
+              background: activeSubTab === 'requests' ? 'var(--bg-card)' : 'transparent',
               fontSize: '11.5px',
               fontWeight: 700,
               color: activeSubTab === 'requests' ? 'var(--sd-crimson)' : 'var(--text-secondary)',
@@ -344,7 +344,7 @@ export const CommunityBuddyScreen: React.FC = () => {
               padding: '6px 8px',
               border: 'none',
               borderRadius: 'var(--radius-full)',
-              background: activeSubTab === 'my_requests' ? '#FFFFFF' : 'transparent',
+              background: activeSubTab === 'my_requests' ? 'var(--bg-card)' : 'transparent',
               fontSize: '11.5px',
               fontWeight: 700,
               color: activeSubTab === 'my_requests' ? 'var(--sd-crimson)' : 'var(--text-secondary)',
@@ -364,7 +364,7 @@ export const CommunityBuddyScreen: React.FC = () => {
               padding: '6px 8px',
               border: 'none',
               borderRadius: 'var(--radius-full)',
-              background: activeSubTab === 'accepted' ? '#FFFFFF' : 'transparent',
+              background: activeSubTab === 'accepted' ? 'var(--bg-card)' : 'transparent',
               fontSize: '11.5px',
               fontWeight: 700,
               color: activeSubTab === 'accepted' ? 'var(--sd-crimson)' : 'var(--text-secondary)',
@@ -526,8 +526,8 @@ export const CommunityBuddyScreen: React.FC = () => {
                               fontWeight: 800,
                               padding: '1px 6px',
                               borderRadius: '4px',
-                              backgroundColor: isMatched ? '#D1FAE5' : '#FEF3C7',
-                              color: isMatched ? '#065F46' : '#92400E'
+                              backgroundColor: isMatched ? 'var(--success-bg)' : 'var(--warning-bg)',
+                              color: isMatched ? 'var(--success-text)' : 'var(--warning-text)'
                             }}>
                               {isMatched ? 'Volunteer Assigned' : 'Awaiting Neighbor'}
                             </span>
@@ -576,12 +576,12 @@ export const CommunityBuddyScreen: React.FC = () => {
 
                     {/* Volunteer Info if matched */}
                     {isMatched && req.matchedVolunteer && (
-                      <div style={{ backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', padding: '10px 12px', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ backgroundColor: 'var(--success-bg)', border: '1px solid var(--success-border)', padding: '10px 12px', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div>
-                          <div style={{ fontSize: '12px', fontWeight: 800, color: '#166534' }}>
+                          <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--success-text)' }}>
                             Helper: {req.matchedVolunteer.name}
                           </div>
-                          <div style={{ fontSize: '11px', color: '#15803D' }}>
+                          <div style={{ fontSize: '11px', color: 'var(--success-text)' }}>
                             {req.matchedVolunteer.unitNo} • ★ {req.matchedVolunteer.rating}
                           </div>
                         </div>
@@ -591,7 +591,7 @@ export const CommunityBuddyScreen: React.FC = () => {
                             width: '32px',
                             height: '32px',
                             borderRadius: '50%',
-                            backgroundColor: 'var(--status-success)',
+                            backgroundColor: 'var(--status-success-solid)',
                             color: '#FFFFFF',
                             display: 'flex',
                             alignItems: 'center',
@@ -639,7 +639,7 @@ export const CommunityBuddyScreen: React.FC = () => {
                           </button>
                           <button 
                             className="btn-primary"
-                            style={{ flex: 1, padding: '9px', fontSize: '12.5px', backgroundColor: 'var(--status-success)' }}
+                            style={{ flex: 1, padding: '9px', fontSize: '12.5px', backgroundColor: 'var(--status-success-solid)' }}
                             onClick={() => handleCompleteWithCelebration(req.id)}
                           >
                             <CheckCircle2 size={14} />
@@ -648,7 +648,7 @@ export const CommunityBuddyScreen: React.FC = () => {
                         </>
                       ) : (
                         <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '8px', fontSize: '12px', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-sm)' }}>
-                          <Sparkles size={14} color="#D97706" />
+                          <Sparkles size={14} color="var(--tactile-yellow)" />
                           <span>Broadcasted to verified neighbors in {req.requesterPrecinct}</span>
                         </div>
                       )}
@@ -716,7 +716,7 @@ export const CommunityBuddyScreen: React.FC = () => {
                         width: '36px',
                         height: '36px',
                         borderRadius: '50%',
-                        backgroundColor: 'var(--status-success)',
+                        backgroundColor: 'var(--status-success-solid)',
                         color: '#FFFFFF',
                         display: 'flex',
                         alignItems: 'center',
@@ -755,7 +755,7 @@ export const CommunityBuddyScreen: React.FC = () => {
 
                     <button 
                       className="btn-primary"
-                      style={{ flex: 1, padding: '9px', fontSize: '12.5px', backgroundColor: 'var(--status-success)' }}
+                      style={{ flex: 1, padding: '9px', fontSize: '12.5px', backgroundColor: 'var(--status-success-solid)' }}
                       onClick={() => handleCompleteWithCelebration(req.id)}
                     >
                       <CheckCircle2 size={14} />

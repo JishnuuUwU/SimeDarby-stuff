@@ -44,7 +44,7 @@ export const HomeOverview: React.FC = () => {
       {/* Hero Welcome Banner with Sime Darby Crimson Gradient & Gold Motif */}
       <div 
         style={{
-          background: 'linear-gradient(135deg, #8B1D24 0%, #600E14 100%)',
+          background: 'linear-gradient(135deg, var(--sd-crimson-solid) 0%, #600E14 100%)',
           borderRadius: 'var(--radius-lg)',
           padding: '20px',
           color: '#FFFFFF',
@@ -120,7 +120,7 @@ export const HomeOverview: React.FC = () => {
               className="btn-primary"
               style={{
                 backgroundColor: '#FFFFFF',
-                color: 'var(--sd-crimson)',
+                color: 'var(--sd-crimson-solid)',
                 padding: '9px 15px',
                 fontSize: '12.5px',
                 boxShadow: 'none',
@@ -328,7 +328,7 @@ export const HomeOverview: React.FC = () => {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '10px' }}>
             <div style={{
               backgroundColor: 'var(--status-success-bg)',
-              border: '1px solid #A7F3D0',
+              border: '1px solid var(--success-border)',
               borderRadius: 'var(--radius-sm)',
               padding: '8px 10px',
               display: 'flex',
@@ -346,7 +346,7 @@ export const HomeOverview: React.FC = () => {
 
             <div style={{
               backgroundColor: 'var(--status-error-bg)',
-              border: '1px solid #FECACA',
+              border: '1px solid var(--danger-border)',
               borderRadius: 'var(--radius-sm)',
               padding: '8px 10px',
               display: 'flex',
@@ -367,14 +367,15 @@ export const HomeOverview: React.FC = () => {
         {/* Emergency & Auxiliary Police Support Hotline */}
         <div 
           style={{
-            backgroundColor: '#0F172A',
-            color: '#FFFFFF',
+            backgroundColor: 'var(--bg-inverse)',
+            color: 'var(--text-inverse)',
             borderRadius: 'var(--radius-md)',
             padding: '14px 16px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            boxShadow: 'var(--shadow-md)'
+            boxShadow: 'var(--shadow-md)',
+            border: 'var(--border-subtle)'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -382,17 +383,17 @@ export const HomeOverview: React.FC = () => {
               width: '38px',
               height: '38px',
               borderRadius: '50%',
-              backgroundColor: 'var(--sd-crimson)',
+              backgroundColor: 'var(--sd-crimson-solid)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               boxShadow: '0 2px 6px rgba(139, 29, 36, 0.4)'
             }}>
-              <PhoneCall size={18} />
+              <PhoneCall size={18} color="#FFFFFF" />
             </div>
             <div>
-              <h4 style={{ fontSize: '13.5px', fontWeight: 800 }}>Polis Bantuan SD Property</h4>
-              <p style={{ fontSize: '11px', color: '#CBD5E1' }}>24/7 Accessibility Escort & Auxiliary Patrol</p>
+              <h4 style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text-inverse)' }}>Polis Bantuan SD Property</h4>
+              <p style={{ fontSize: '11px', color: 'var(--text-inverse-muted)' }}>24/7 Accessibility Escort & Auxiliary Patrol</p>
             </div>
           </div>
 
@@ -400,7 +401,7 @@ export const HomeOverview: React.FC = () => {
             href="tel:0378495000"
             style={{
               backgroundColor: 'rgba(255,255,255,0.14)',
-              color: '#FFFFFF',
+              color: 'var(--text-inverse)',
               textDecoration: 'none',
               fontSize: '12px',
               fontWeight: 800,
