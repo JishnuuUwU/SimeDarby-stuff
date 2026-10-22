@@ -199,30 +199,30 @@ To evaluate the application from every stakeholder perspective, tap the **Switch
 
 ```mermaid
 graph TD
-    subgraph Native Android Runtime
-        CapacitorBridge[Capacitor 7 Native Bridge]
-        HapticsPlugin[@capacitor/haptics]
-        StatusBarPlugin[@capacitor/status-bar]
-        WebView[Android System WebView API 23-35]
+    subgraph Native_Android_Runtime["Native Android Runtime"]
+        CapacitorBridge["Capacitor 7 Native Bridge"]
+        HapticsPlugin["@capacitor/haptics"]
+        StatusBarPlugin["@capacitor/status-bar"]
+        WebView["Android System WebView (API 23-35)"]
     end
 
-    subgraph Core Application Layer
-        App[App Shell & Device Frame Emulator]
-        Context[AppContext State Machine]
-        Tokens[Anti-Vibecoding Design System]
+    subgraph Core_Application_Layer["Core Application Layer"]
+        App["App Shell & Device Frame Emulator"]
+        Context["AppContext State Machine"]
+        Tokens["Anti-Vibecoding Design System"]
     end
 
-    subgraph Domain Feature Modules
-        AccessMap[AccessMap Spatial Pathfinding]
-        Buddy[Community Buddy Network]
-        Parking[Smart OKU Parking & Polis Bantuan]
-        A11y[WCAG AAA Accessibility Engine]
+    subgraph Domain_Feature_Modules["Domain Feature Modules"]
+        AccessMap["AccessMap Spatial Pathfinding"]
+        Buddy["Community Buddy Network"]
+        Parking["Smart OKU Parking & Polis Bantuan"]
+        A11y["WCAG AAA Accessibility Engine"]
     end
 
-    subgraph Data & Telemetry Engine
-        Townships[Sime Darby Property Townships]
-        MS1184[MS 1184:2014 Compliance Layer]
-        Sensors[Simulated Ultrasonic & LPR Telemetry]
+    subgraph Data_Telemetry_Engine["Data & Telemetry Engine"]
+        Townships["Sime Darby Property Townships"]
+        MS1184["MS 1184:2014 Compliance Layer"]
+        Sensors["Simulated Ultrasonic & LPR Telemetry"]
     end
 
     CapacitorBridge --> WebView
