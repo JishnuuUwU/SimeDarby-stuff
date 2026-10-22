@@ -13,7 +13,11 @@ import {
   MapPin, 
   Filter,
   Check,
-  PhoneCall
+  PhoneCall,
+  Navigation,
+  Activity,
+  Layers,
+  FileText
 } from 'lucide-react';
 import { ReportMisuseModal } from './ReportMisuseModal';
 
@@ -25,7 +29,11 @@ export const SmartParkingScreen: React.FC = () => {
     dispatchSecurityPatrol, 
     resolveSecurityViolation,
     currentUser,
-    setIsRoleModalOpen 
+    setIsRoleModalOpen,
+    addToast,
+    speakText,
+    setActiveTab,
+    calculateStepFreeRoute
   } = useApp();
 
   const [filterMode, setFilterMode] = useState<'all' | 'available' | 'alerts'>('all');
@@ -45,8 +53,18 @@ export const SmartParkingScreen: React.FC = () => {
 
   const isSecurityOfficer = currentUser.role === 'township_security';
 
+  const handleNavigateToBay = (bay: OKUParkingBay) => {
+    addToast({
+      type: 'info',
+      title: `Navigating to ${bay.bayNumber}`,
+      message: `Direct step-free guidance to ${bay.hubName}. Total distance: ${bay.distanceToLiftMeters}m to priority lift.`
+    });
+    speakText(`Guiding to accessible bay ${bay.bayNumber} at ${bay.hubName}.`);
+    setActiveTab('accessmap');
+  };
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
+    <div className="tab-screen-container" style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
       {/* Top Header */}
       <div 
         style={{
@@ -62,55 +80,84 @@ export const SmartParkingScreen: React.FC = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span className="badge-oku">IoT Telemetry Live</span>
-              <span style={{ display: 'inline-flex', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--status-success)', animation: 'pulseGlow 2s infinite' }} />
+              <span className="badge-oku" style={{ padding: '2px 8px', fontSize: '10px' }}>
+                IoT Telemetry Live
+              </span>
+              <span 
+                className="pulse-sensor"
+                style={{ 
+                  display: 'inline-flex', 
+                  width: '9px', 
+                  height: '9px', 
+                  borderRadius: '50%', 
+                  backgroundColor: 'var(--status-success)' 
+                }} 
+              />
             </div>
-            <h2 style={{ fontSize: '16px', fontWeight: 800, fontFamily: 'var(--font-display)', marginTop: '2px' }}>
+            <h2 style={{ fontSize: '17px', fontWeight: 800, fontFamily: 'var(--font-display)', marginTop: '2px' }}>
               Smart OKU Parking Safeguard
             </h2>
+            <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+              Real-time bay monitoring & auxiliary enforcement in {activeTownship.name}
+            </p>
           </div>
 
-          {/* Auxiliary Police Status */}
+          {/* Auxiliary Police Status Badge */}
           <div style={{ textAlign: 'right' }}>
-            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--sd-crimson)' }}>
-              Polis Bantuan
+            <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--sd-crimson)', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
+              <ShieldCheck size={13} /> Polis Bantuan
             </span>
-            <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Active Patrol En Route</div>
+            <div style={{ fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 600 }}>
+              Active Patrol On Duty
+            </div>
           </div>
         </div>
 
-        {/* Real-Time Availability Metrics Banner */}
+        {/* Real-Time Availability Metrics Banner (Interactive Filter Pills) */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
           <div 
             onClick={() => setFilterMode('available')}
             style={{
               backgroundColor: 'var(--status-success-bg)',
-              border: filterMode === 'available' ? '2px solid var(--status-success)' : '1px solid #A6F4C5',
+              border: filterMode === 'available' ? '2px solid var(--status-success)' : '1px solid #A7F3D0',
               borderRadius: 'var(--radius-sm)',
-              padding: '8px',
-              cursor: 'pointer'
+              padding: '10px',
+              cursor: 'pointer',
+              transition: 'var(--transition-fast)',
+              boxShadow: filterMode === 'available' ? '0 2px 8px rgba(16, 185, 129, 0.2)' : 'none'
             }}
           >
-            <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--status-success)' }}>
-              {availableCount}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--status-success)' }}>
+                {availableCount}
+              </div>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--status-success)' }} />
             </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Available Bays</div>
+            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, marginTop: '2px' }}>Available Bays</div>
           </div>
 
           <div 
             onClick={() => setFilterMode('alerts')}
             style={{
               backgroundColor: 'var(--status-error-bg)',
-              border: filterMode === 'alerts' ? '2px solid var(--status-error)' : '1px solid #FECDCA',
+              border: filterMode === 'alerts' ? '2px solid var(--status-error)' : '1px solid #FECACA',
               borderRadius: 'var(--radius-sm)',
-              padding: '8px',
-              cursor: 'pointer'
+              padding: '10px',
+              cursor: 'pointer',
+              transition: 'var(--transition-fast)',
+              boxShadow: filterMode === 'alerts' ? '0 2px 8px rgba(239, 68, 68, 0.2)' : 'none'
             }}
           >
-            <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--status-error)' }}>
-              {misuseCount}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--status-error)' }}>
+                {misuseCount}
+              </div>
+              <span 
+                className={misuseCount > 0 ? "pulse-violation" : ""}
+                style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--status-error)' }} 
+              />
             </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Misuse Alerts</div>
+            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, marginTop: '2px' }}>Misuse Alerts</div>
           </div>
 
           <div 
@@ -119,259 +166,235 @@ export const SmartParkingScreen: React.FC = () => {
               backgroundColor: 'var(--bg-subtle)',
               border: filterMode === 'all' ? '2px solid var(--text-primary)' : 'var(--border-light)',
               borderRadius: 'var(--radius-sm)',
-              padding: '8px',
-              cursor: 'pointer'
+              padding: '10px',
+              cursor: 'pointer',
+              transition: 'var(--transition-fast)',
+              boxShadow: filterMode === 'all' ? 'var(--shadow-sm)' : 'none'
             }}
           >
-            <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)' }}>
-              {townshipBays.length}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>
+                {townshipBays.length}
+              </div>
+              <Layers size={14} color="var(--text-tertiary)" />
             </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>All Monitored</div>
+            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, marginTop: '2px' }}>All Monitored</div>
           </div>
         </div>
 
-        {/* Security Persona Notice Banner */}
+        {/* Security Officer Persona Terminal Notice */}
         {isSecurityOfficer && (
           <div 
             style={{
-              backgroundColor: '#1E242B',
+              backgroundColor: '#0F172A',
               color: '#FFFFFF',
               borderRadius: 'var(--radius-sm)',
-              padding: '8px 12px',
+              padding: '10px 14px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              fontSize: '12px'
+              fontSize: '12px',
+              boxShadow: 'var(--shadow-md)'
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <ShieldAlert size={16} color="var(--status-error)" />
-              <span><strong>Auxiliary Officer Mode:</strong> Direct dispatch controls unlocked.</span>
+              <span><strong>Polis Bantuan Console:</strong> Direct auxiliary dispatch & citation controls active.</span>
             </div>
           </div>
         )}
       </div>
 
-      {/* Bays List Area */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-        {displayedBays.map(bay => {
-          const isMisuse = bay.status === 'unauthorized_misuse';
-          const isAvailable = bay.status === 'available';
-          const isAuthorized = bay.status === 'occupied_authorized';
+      {/* Bays List Area with Adaptive Grid for Foldables/Tablets */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px' }}>
+        <div className="adaptive-grid-2col" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {displayedBays.map(bay => {
+            const isMisuse = bay.status === 'unauthorized_misuse';
+            const isAvailable = bay.status === 'available';
+            const isAuthorized = bay.status === 'occupied_authorized';
 
-          return (
-            <div 
-              key={bay.id}
-              className="sd-card"
-              style={{
-                border: isMisuse 
-                  ? '2px solid var(--status-error)' 
-                  : isAvailable 
-                  ? '1.5px solid #A6F4C5' 
-                  : 'var(--border-light)',
-                backgroundColor: isMisuse ? '#FFFBFB' : 'var(--bg-card)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '10px'
-              }}
-            >
-              {/* Card Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div 
-                    style={{
-                      width: '42px',
-                      height: '42px',
-                      borderRadius: '10px',
-                      backgroundColor: isAvailable ? 'var(--status-success)' : isMisuse ? 'var(--status-error)' : 'var(--oku-blue)',
-                      color: '#FFFFFF',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontWeight: 800,
-                      boxShadow: 'var(--shadow-sm)'
-                    }}
-                  >
-                    <Car size={18} />
-                    <span style={{ fontSize: '9px' }}>OKU</span>
+            return (
+              <div 
+                key={bay.id}
+                className="sd-card"
+                style={{
+                  border: isMisuse 
+                    ? '2px solid var(--status-error)' 
+                    : isAvailable 
+                    ? '1.5px solid #A7F3D0' 
+                    : 'var(--border-light)',
+                  backgroundColor: isMisuse ? '#FFFBFB' : 'var(--bg-card)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px'
+                }}
+              >
+                {/* Card Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div 
+                      style={{
+                        width: '44px',
+                        height: '44px',
+                        borderRadius: '12px',
+                        backgroundColor: isAvailable ? 'var(--status-success)' : isMisuse ? 'var(--status-error)' : 'var(--oku-blue)',
+                        color: '#FFFFFF',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 800,
+                        boxShadow: '0 3px 8px rgba(0,0,0,0.18)'
+                      }}
+                    >
+                      <Car size={19} />
+                      <span style={{ fontSize: '9px', fontWeight: 800 }}>OKU</span>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)' }}>{bay.bayNumber}</h3>
+                        {isAvailable && (
+                          <span className="badge-verified-resident" style={{ fontSize: '10.5px' }}>Vacant / Open</span>
+                        )}
+                        {isAuthorized && (
+                          <span className="badge-oku" style={{ fontSize: '10.5px' }}>Verified Permit</span>
+                        )}
+                        {isMisuse && (
+                          <span className="badge-danger" style={{ fontSize: '10.5px' }}>Unauthorized Misuse</span>
+                        )}
+                      </div>
+                      <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                        {bay.hubName}
+                      </p>
+                    </div>
+                  </div>
+
+                  <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 600 }}>
+                    {bay.lastUpdated}
+                  </span>
+                </div>
+
+                {/* Bay Specifications & Sensor Telemetry */}
+                <div 
+                  style={{
+                    backgroundColor: 'var(--bg-subtle)',
+                    borderRadius: 'var(--radius-sm)',
+                    padding: '10px 12px',
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '10px',
+                    fontSize: '12px'
+                  }}
+                >
+                  <div>
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '11px', fontWeight: 600 }}>Bay Dimensions</span>
+                    <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{bay.widthMeters}m (1.2m transfer corridor)</div>
                   </div>
 
                   <div>
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '11px', fontWeight: 600 }}>Distance to Lift</span>
+                    <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{bay.distanceToLiftMeters} meters (Step-free)</div>
+                  </div>
+
+                  {/* IoT Telemetry State */}
+                  <div style={{ gridColumn: 'span 2', borderTop: 'var(--border-subtle)', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <h3 style={{ fontSize: '16px', fontWeight: 800 }}>{bay.bayNumber}</h3>
-                      {isAvailable && (
-                        <span className="badge-verified-resident">Vacant / Open</span>
-                      )}
-                      {isAuthorized && (
-                        <span className="badge-oku">Verified OKU Permit</span>
-                      )}
-                      {isMisuse && (
-                        <span className="badge-danger">Unauthorized Misuse</span>
-                      )}
+                      <Activity size={14} color={isAvailable ? "var(--status-success)" : "var(--sd-crimson)"} />
+                      <span style={{ fontSize: '11.5px', color: 'var(--text-secondary)' }}>
+                        Sensor: <strong>{bay.telemetry.ultrasonicReading === 'clear' ? 'Sonar Clear (Ground Ready)' : 'Vehicle Detected (Ultrasonic)'}</strong>
+                      </span>
                     </div>
-                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                      {bay.hubName}
-                    </p>
-                  </div>
-                </div>
 
-                <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 600 }}>
-                  {bay.lastUpdated}
-                </span>
-              </div>
-
-              {/* Bay Specifications & Sensor Telemetry */}
-              <div 
-                style={{
-                  backgroundColor: 'var(--bg-subtle)',
-                  borderRadius: 'var(--radius-sm)',
-                  padding: '10px 12px',
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: '8px',
-                  fontSize: '12px'
-                }}
-              >
-                <div>
-                  <span style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>Bay Dimensions</span>
-                  <div style={{ fontWeight: 700 }}>{bay.widthMeters}m (1.2m transfer corridor)</div>
-                </div>
-
-                <div>
-                  <span style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>Distance to Lift</span>
-                  <div style={{ fontWeight: 700 }}>{bay.distanceToLiftMeters} meters (Step-free)</div>
-                </div>
-
-                {bay.telemetry.detectedPlate && (
-                  <div style={{ gridColumn: 'span 2', borderTop: 'var(--border-subtle)', paddingTop: '6px' }}>
-                    <span style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>LPR Camera Detected Vehicle</span>
-                    <div style={{ fontWeight: 800, color: isMisuse ? 'var(--status-error)' : 'var(--text-primary)' }}>
-                      {bay.telemetry.detectedPlate}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Misuse Violation Status Banner & Actions */}
-              {isMisuse && (
-                <div 
-                  style={{
-                    backgroundColor: 'var(--status-error-bg)',
-                    border: '1px solid #FECDCA',
-                    borderRadius: 'var(--radius-sm)',
-                    padding: '10px 12px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '6px'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--status-error)', fontWeight: 800, fontSize: '12px' }}>
-                    <ShieldAlert size={14} />
-                    <span>Auxiliary Police Alert: {bay.activeViolationReport?.securityDispatchStatus.toUpperCase() || 'DISPATCHED'}</span>
-                  </div>
-                  <p style={{ fontSize: '12px', color: 'var(--text-primary)' }}>
-                    {bay.activeViolationReport?.violationReason || 'Non-OKU vehicle parked without valid decal.'}
-                  </p>
-                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                    Assigned: {bay.activeViolationReport?.patrolOfficerId || 'Polis Bantuan Unit'}
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: bay.telemetry.cameraVerifiedOKU ? 'var(--status-success)' : 'var(--text-secondary)' }}>
+                      {bay.telemetry.cameraVerifiedOKU ? '✓ Decal Verified' : 'Camera LPR Active'}
+                    </span>
                   </div>
 
-                  {/* Actions for Security Officers */}
-                  {isSecurityOfficer && (
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
-                      <button 
-                        className="btn-primary"
-                        style={{ flex: 1, padding: '8px', fontSize: '12px' }}
-                        onClick={() => dispatchSecurityPatrol(bay.id)}
-                      >
-                        Officer On Scene
-                      </button>
-                      <button 
-                        className="btn-secondary"
-                        style={{ flex: 1, padding: '8px', fontSize: '12px' }}
-                        onClick={() => resolveSecurityViolation(bay.id)}
-                      >
-                        Clear & Resolve
-                      </button>
+                  {bay.telemetry.detectedPlate && (
+                    <div style={{ gridColumn: 'span 2', backgroundColor: isMisuse ? '#FEE2E2' : '#EFF6FF', padding: '6px 10px', borderRadius: '6px' }}>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '10.5px', fontWeight: 700 }}>LPR Camera Detected Plate</span>
+                      <div style={{ fontWeight: 800, color: isMisuse ? 'var(--status-error)' : 'var(--oku-blue)' }}>
+                        {bay.telemetry.detectedPlate}
+                      </div>
                     </div>
                   )}
                 </div>
-              )}
 
-              {/* Community Quick Action Buttons */}
-              <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                {!isMisuse && (
-                  <button 
-                    className="btn-outline-crimson"
-                    style={{ flex: 1, padding: '9px 12px', fontSize: '12px', borderColor: 'var(--status-error)', color: 'var(--status-error)' }}
-                    onClick={() => setReportingBay(bay)}
-                  >
-                    <AlertTriangle size={14} />
-                    Quick Report Non-OKU Vehicle
-                  </button>
-                )}
-
-                {isAvailable && (
-                  <button 
-                    className="btn-primary"
-                    style={{ flex: 1, padding: '9px 12px', fontSize: '12px', backgroundColor: 'var(--oku-blue)' }}
-                    onClick={() => {
-                      alert(`Reserved navigation route to ${bay.bayNumber}. Follow step-free indoor signage.`);
+                {/* Misuse Violation Status Banner & Actions */}
+                {isMisuse && (
+                  <div 
+                    style={{
+                      backgroundColor: 'var(--status-error-bg)',
+                      border: '1px solid #FECACA',
+                      borderRadius: 'var(--radius-sm)',
+                      padding: '10px 12px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px'
                     }}
                   >
-                    Navigate to Bay
-                  </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--status-error)', fontWeight: 800, fontSize: '12px' }}>
+                      <ShieldAlert size={15} />
+                      <span>Auxiliary Police Alert: {bay.activeViolationReport?.securityDispatchStatus.toUpperCase() || 'DISPATCHED'}</span>
+                    </div>
+                    <p style={{ fontSize: '12.5px', color: 'var(--text-primary)', lineHeight: 1.4 }}>
+                      {bay.activeViolationReport?.violationReason || 'Non-OKU vehicle parked without valid decal.'}
+                    </p>
+                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                      Assigned: {bay.activeViolationReport?.patrolOfficerId || 'Polis Bantuan Unit'}
+                    </div>
+
+                    {/* Actions for Security Officers */}
+                    {isSecurityOfficer && (
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                        <button 
+                          className="btn-primary"
+                          style={{ flex: 1, padding: '9px', fontSize: '12px' }}
+                          onClick={() => dispatchSecurityPatrol(bay.id)}
+                        >
+                          Officer On Scene
+                        </button>
+                        <button 
+                          className="btn-secondary"
+                          style={{ flex: 1, padding: '9px', fontSize: '12px' }}
+                          onClick={() => resolveSecurityViolation(bay.id)}
+                        >
+                          Clear & Resolve
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 )}
-              </div>
-            </div>
-          );
-        })}
 
-        {/* Security Dispatch Feed Section */}
-        <div style={{ marginTop: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <h4 style={{ fontSize: '14px', fontWeight: 800 }}>Polis Bantuan Dispatch Log</h4>
-            <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Live Enforcement Feed</span>
-          </div>
+                {/* Community Quick Action Buttons */}
+                <div style={{ display: 'flex', gap: '8px', marginTop: '2px' }}>
+                  {!isMisuse && (
+                    <button 
+                      className="btn-outline-crimson"
+                      style={{ flex: 1, padding: '9px 12px', fontSize: '12px', borderColor: 'var(--status-error)', color: 'var(--status-error)' }}
+                      onClick={() => setReportingBay(bay)}
+                      id={`btn-report-${bay.id}`}
+                    >
+                      <AlertTriangle size={14} />
+                      Quick Report Non-OKU Vehicle
+                    </button>
+                  )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {securityLogs.slice(0, 3).map(log => (
-              <div 
-                key={log.id} 
-                style={{
-                  backgroundColor: 'var(--bg-card)',
-                  borderRadius: 'var(--radius-sm)',
-                  padding: '10px 12px',
-                  border: 'var(--border-light)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  fontSize: '12px'
-                }}
-              >
-                <div>
-                  <div style={{ fontWeight: 700 }}>
-                    {log.bayNumber} ({log.reportedVehiclePlate})
-                  </div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                    {log.actionTaken.replace('_', ' ').toUpperCase()} • {log.officerName}
-                  </div>
+                  {isAvailable && (
+                    <button 
+                      className="btn-primary"
+                      style={{ flex: 1, padding: '9px 12px', fontSize: '12px', backgroundColor: 'var(--oku-blue)' }}
+                      onClick={() => handleNavigateToBay(bay)}
+                    >
+                      <Navigation size={14} />
+                      Navigate Step-Free
+                    </button>
+                  )}
                 </div>
-
-                <span style={{
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  backgroundColor: log.status === 'active' ? 'var(--status-error-bg)' : 'var(--status-success-bg)',
-                  color: log.status === 'active' ? 'var(--status-error)' : 'var(--status-success)',
-                  padding: '3px 6px',
-                  borderRadius: '4px'
-                }}>
-                  {log.status.toUpperCase()}
-                </span>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
       </div>
 

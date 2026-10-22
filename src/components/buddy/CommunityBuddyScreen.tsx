@@ -16,7 +16,11 @@ import {
   Send, 
   CheckCircle2, 
   AlertCircle,
-  MessageSquare
+  MessageSquare,
+  Sparkles,
+  ArrowRight,
+  ShieldAlert,
+  X
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { RequestAssistanceModal } from './RequestAssistanceModal';
@@ -28,7 +32,8 @@ export const CommunityBuddyScreen: React.FC = () => {
     acceptBuddyRequest, 
     sendBuddyMessage, 
     completeBuddyRequest,
-    setIsRoleModalOpen 
+    setIsRoleModalOpen,
+    addToast 
   } = useApp();
 
   const [activeSubTab, setActiveSubTab] = useState<'requests' | 'active'>('requests');
@@ -43,7 +48,7 @@ export const CommunityBuddyScreen: React.FC = () => {
       case 'event_navigation':
         return <Calendar size={18} color="var(--oku-blue)" />;
       case 'mobility_support':
-        return <HeartHandshake size={18} color="var(--status-warning)" />;
+        return <HeartHandshake size={18} color="var(--tactile-yellow)" />;
       case 'medical_clinic_escort':
         return <Stethoscope size={18} color="var(--status-success)" />;
       default:
@@ -69,8 +74,8 @@ export const CommunityBuddyScreen: React.FC = () => {
   const handleCompleteWithCelebration = (requestId: string) => {
     completeBuddyRequest(requestId);
     confetti({
-      particleCount: 80,
-      spread: 60,
+      particleCount: 90,
+      spread: 70,
       origin: { y: 0.6 }
     });
     setSelectedCoordinationRequest(null);
@@ -83,11 +88,26 @@ export const CommunityBuddyScreen: React.FC = () => {
     setChatInput('');
   };
 
+  const handleQuickSend = (text: string) => {
+    if (!selectedCoordinationRequest) return;
+    sendBuddyMessage(selectedCoordinationRequest.id, text);
+  };
+
+  const handleEscalateSOS = () => {
+    addToast({
+      type: 'security',
+      title: 'Polis Bantuan SOS Notified',
+      message: 'Auxiliary police patrol dispatched to assist with immediate residential mobility support.'
+    });
+  };
+
   // Check if role is verified resident
   const isResident = currentUser.isVerifiedResident;
+  const openRequests = buddyRequests.filter(r => r.status === 'open');
+  const activeMatchedRequests = buddyRequests.filter(r => r.status === 'matched');
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
+    <div className="tab-screen-container" style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
       {/* Top Header & Precinct Trust Banner */}
       <div 
         style={{
@@ -102,7 +122,15 @@ export const CommunityBuddyScreen: React.FC = () => {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h2 style={{ fontSize: '16px', fontWeight: 800, fontFamily: 'var(--font-display)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span className="badge-verified-resident" style={{ padding: '2px 8px', fontSize: '10px' }}>
+                Neighbourhood Connection
+              </span>
+              <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 600 }}>
+                100% Resident Verified
+              </span>
+            </div>
+            <h2 style={{ fontSize: '17px', fontWeight: 800, fontFamily: 'var(--font-display)', marginTop: '2px' }}>
               Community Buddy System
             </h2>
             <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
@@ -112,7 +140,7 @@ export const CommunityBuddyScreen: React.FC = () => {
 
           <button 
             className="btn-primary"
-            style={{ padding: '8px 12px', fontSize: '12px' }}
+            style={{ padding: '9px 13px', fontSize: '12.5px' }}
             onClick={() => {
               if (!isResident) {
                 setIsRoleModalOpen(true);
@@ -120,132 +148,157 @@ export const CommunityBuddyScreen: React.FC = () => {
                 setIsRequestModalOpen(true);
               }
             }}
+            id="btn-request-help"
           >
             <Plus size={15} />
             Request Help
           </button>
         </div>
 
-        {/* Precinct Authentication Tag */}
+        {/* Precinct Authentication Tag & Security Microchip */}
         <div 
           style={{
             backgroundColor: isResident ? 'var(--status-success-bg)' : 'var(--status-warning-bg)',
-            border: isResident ? '1px solid #A6F4C5' : '1px solid #FEDF89',
+            border: isResident ? '1px solid #A7F3D0' : '1px solid #FDE68A',
             borderRadius: 'var(--radius-sm)',
-            padding: '8px 12px',
+            padding: '10px 12px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between'
+            justifyContent: 'space-between',
+            boxShadow: 'var(--shadow-sm)'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <ShieldCheck size={16} color={isResident ? 'var(--status-success)' : 'var(--status-warning)'} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '8px',
+              backgroundColor: isResident ? '#10B981' : '#F59E0B',
+              color: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
+            }}>
+              <ShieldCheck size={18} />
+            </div>
             <div>
-              <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-primary)' }}>
+              <div style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--text-primary)' }}>
                 {isResident ? currentUser.precinct : 'Non-Resident Persona Active'}
-              </span>
+              </div>
               <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                {isResident ? `Authenticated Unit: ${currentUser.unitNo} • Trust Level 100%` : 'Community Buddy matching is restricted to authenticated residents.'}
+                {isResident ? `Authenticated Unit: ${currentUser.unitNo} • 24 Verified Neighbors Online` : 'Community Buddy matching is restricted to authenticated residents.'}
               </div>
             </div>
           </div>
 
-          {!isResident && (
+          {!isResident ? (
             <button 
               className="role-badge-btn"
               onClick={() => setIsRoleModalOpen(true)}
-              style={{ fontSize: '10px', padding: '3px 8px' }}
+              style={{ fontSize: '10.5px', padding: '4px 9px' }}
             >
-              Switch to Resident
+              Switch Role
             </button>
+          ) : (
+            <span style={{ fontSize: '11px', fontWeight: 800, color: '#047857', backgroundColor: '#D1FAE5', padding: '2px 8px', borderRadius: '4px' }}>
+              Precinct Match
+            </span>
           )}
         </div>
 
-        {/* Sub-tabs */}
-        <div style={{ display: 'flex', gap: '8px', borderBottom: 'var(--border-subtle)', paddingTop: '2px' }}>
+        {/* Segmented Sub-tabs Pill */}
+        <div style={{ display: 'flex', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-full)', padding: '3px', gap: '4px' }}>
           <button
             onClick={() => setActiveSubTab('requests')}
             style={{
+              flex: 1,
               padding: '6px 12px',
               border: 'none',
-              background: 'none',
-              fontSize: '13px',
+              borderRadius: 'var(--radius-full)',
+              background: activeSubTab === 'requests' ? '#FFFFFF' : 'transparent',
+              fontSize: '12px',
               fontWeight: 700,
               color: activeSubTab === 'requests' ? 'var(--sd-crimson)' : 'var(--text-secondary)',
-              borderBottom: activeSubTab === 'requests' ? '2px solid var(--sd-crimson)' : 'none',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              boxShadow: activeSubTab === 'requests' ? 'var(--shadow-sm)' : 'none',
+              transition: 'var(--transition-fast)'
             }}
           >
-            Neighbour Requests ({buddyRequests.filter(r => r.status === 'open').length})
+            Neighbour Requests ({openRequests.length})
           </button>
 
           <button
             onClick={() => setActiveSubTab('active')}
             style={{
+              flex: 1,
               padding: '6px 12px',
               border: 'none',
-              background: 'none',
-              fontSize: '13px',
+              borderRadius: 'var(--radius-full)',
+              background: activeSubTab === 'active' ? '#FFFFFF' : 'transparent',
+              fontSize: '12px',
               fontWeight: 700,
               color: activeSubTab === 'active' ? 'var(--sd-crimson)' : 'var(--text-secondary)',
-              borderBottom: activeSubTab === 'active' ? '2px solid var(--sd-crimson)' : 'none',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              boxShadow: activeSubTab === 'active' ? 'var(--shadow-sm)' : 'none',
+              transition: 'var(--transition-fast)'
             }}
           >
-            Active & Coordinated ({buddyRequests.filter(r => r.status === 'matched').length})
+            Active & Coordinated ({activeMatchedRequests.length})
           </button>
         </div>
       </div>
 
-      {/* Main List Area */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      {/* Main List Area with Adaptive Grid for Foldables/Tablets */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px' }}>
         {activeSubTab === 'requests' ? (
-          <>
-            {buddyRequests.filter(r => r.status === 'open').length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-secondary)' }}>
-                <CheckCircle2 size={40} color="var(--status-success)" style={{ margin: '0 auto 10px auto' }} />
-                <h4 style={{ fontSize: '16px', fontWeight: 700 }}>All Neighbors Assisted!</h4>
+          <div className="adaptive-grid-2col" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {openRequests.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-secondary)', gridColumn: '1 / -1' }}>
+                <CheckCircle2 size={44} color="var(--status-success)" style={{ margin: '0 auto 12px auto' }} />
+                <h4 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)' }}>All Neighbors Assisted!</h4>
                 <p style={{ fontSize: '13px', marginTop: '4px' }}>
                   No open physical assistance requests waiting in your precinct right now.
                 </p>
               </div>
             ) : (
-              buddyRequests.filter(r => r.status === 'open').map(req => (
+              openRequests.map(req => (
                 <div key={req.id} className="sd-card" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <div style={{
-                        width: '36px',
-                        height: '36px',
-                        borderRadius: '8px',
+                        width: '38px',
+                        height: '38px',
+                        borderRadius: '10px',
                         backgroundColor: 'var(--bg-subtle)',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'center',
+                        boxShadow: 'var(--shadow-sm)'
                       }}>
                         {getCategoryIcon(req.category)}
                       </div>
                       <div>
-                        <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                        <span style={{ fontSize: '10.5px', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
                           {getCategoryLabel(req.category)}
                         </span>
-                        <h4 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)' }}>
+                        <h4 style={{ fontSize: '14.5px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.25 }}>
                           {req.title}
                         </h4>
                       </div>
                     </div>
 
-                    <span className="badge-warning">
-                      {req.urgency.toUpperCase()}
+                    <span className={req.urgency === 'urgent' ? 'badge-danger' : 'badge-warning'} style={{ textTransform: 'uppercase', fontSize: '10px' }}>
+                      {req.urgency}
                     </span>
                   </div>
 
-                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                  <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
                     {req.description}
                   </p>
 
                   {/* Precinct & Location metadata */}
-                  <div style={{ backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-sm)', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '12px' }}>
+                  <div style={{ backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-sm)', padding: '10px', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <MapPin size={13} color="var(--sd-crimson)" />
                       <span><strong>From:</strong> {req.pickupLocation}</span>
@@ -254,9 +307,14 @@ export const CommunityBuddyScreen: React.FC = () => {
                       <MapPin size={13} color="var(--status-success)" />
                       <span><strong>To:</strong> {req.dropoffLocation}</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
-                      <Clock size={13} />
-                      <span>{req.scheduledTime} • Requester: {req.requesterName} ({req.requesterUnit})</span>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: 'var(--border-subtle)', paddingTop: '6px', color: 'var(--text-secondary)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <Clock size={13} />
+                        <span>{req.scheduledTime}</span>
+                      </div>
+                      <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                        {req.requesterName} ({req.requesterUnit})
+                      </span>
                     </div>
                   </div>
 
@@ -277,107 +335,129 @@ export const CommunityBuddyScreen: React.FC = () => {
                 </div>
               ))
             )}
-          </>
+          </div>
         ) : (
-          /* Active Tasks Tab */
-          <>
-            {buddyRequests.filter(r => r.status === 'matched').map(req => (
-              <div 
-                key={req.id} 
-                className="sd-card" 
-                style={{ border: '2px solid var(--status-success)', display: 'flex', flexDirection: 'column', gap: '10px' }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span className="badge-verified-resident">
-                    <CheckCircle2 size={12} /> Paired Neighbor Match
-                  </span>
-                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                    Active Coordination
-                  </span>
-                </div>
-
-                <h4 style={{ fontSize: '15px', fontWeight: 800 }}>
-                  {req.title}
-                </h4>
-
-                {/* Volunteer & Requester Match Profile */}
-                <div style={{ backgroundColor: 'var(--bg-subtle)', padding: '10px', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div>
-                    <div style={{ fontSize: '12px', fontWeight: 700 }}>
-                      Volunteer: {req.matchedVolunteer?.name}
-                    </div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                      {req.matchedVolunteer?.precinct} ({req.matchedVolunteer?.unitNo}) • ★ {req.matchedVolunteer?.rating}
-                    </div>
+          /* Active & Coordinated Tab */
+          <div className="adaptive-grid-2col" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {activeMatchedRequests.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-secondary)', gridColumn: '1 / -1' }}>
+                <Users size={44} color="var(--text-tertiary)" style={{ margin: '0 auto 12px auto' }} />
+                <h4 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)' }}>No Active Coordinated Sessions</h4>
+                <p style={{ fontSize: '13px', marginTop: '4px' }}>
+                  Accept a neighbor request from the feed or request help to coordinate live support.
+                </p>
+              </div>
+            ) : (
+              activeMatchedRequests.map(req => (
+                <div 
+                  key={req.id} 
+                  className="sd-card" 
+                  style={{ border: '2px solid var(--status-success)', display: 'flex', flexDirection: 'column', gap: '12px' }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span className="badge-verified-resident">
+                      <CheckCircle2 size={12} /> Paired Neighbor Match
+                    </span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                      Active Coordination
+                    </span>
                   </div>
 
-                  <a 
-                    href={`tel:${req.matchedVolunteer?.phone}`} 
-                    style={{
-                      width: '34px',
-                      height: '34px',
-                      borderRadius: '50%',
-                      backgroundColor: 'var(--status-success)',
-                      color: '#FFFFFF',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      textDecoration: 'none'
-                    }}
-                    title="Call Neighbor Directly"
-                  >
-                    <Phone size={16} />
-                  </a>
-                </div>
+                  <h4 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)' }}>
+                    {req.title}
+                  </h4>
 
-                {/* Coordination Actions */}
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button 
-                    className="btn-secondary"
-                    style={{ flex: 1, padding: '8px', fontSize: '12px' }}
-                    onClick={() => setSelectedCoordinationRequest(req)}
-                  >
-                    <MessageSquare size={14} />
-                    Live Chat ({req.liveMessages.length})
-                  </button>
+                  {/* Volunteer & Requester Match Profile */}
+                  <div style={{ backgroundColor: 'var(--bg-subtle)', padding: '12px', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--text-primary)' }}>
+                        Neighbor: {req.matchedVolunteer?.name}
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                        {req.matchedVolunteer?.precinct} ({req.matchedVolunteer?.unitNo}) • ★ {req.matchedVolunteer?.rating}
+                      </div>
+                    </div>
 
-                  <button 
-                    className="btn-primary"
-                    style={{ flex: 1, padding: '8px', fontSize: '12px', backgroundColor: 'var(--status-success)' }}
-                    onClick={() => handleCompleteWithCelebration(req.id)}
-                  >
-                    <CheckCircle2 size={14} />
-                    Mark Completed
-                  </button>
+                    <a 
+                      href={`tel:${req.matchedVolunteer?.phone}`} 
+                      style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '50%',
+                        backgroundColor: 'var(--status-success)',
+                        color: '#FFFFFF',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        textDecoration: 'none',
+                        boxShadow: '0 2px 6px rgba(16, 185, 129, 0.3)'
+                      }}
+                      title="Call Neighbor Directly"
+                    >
+                      <Phone size={16} />
+                    </a>
+                  </div>
+
+                  {/* Coordination Actions */}
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button 
+                      className="btn-secondary"
+                      style={{ flex: 1, padding: '9px', fontSize: '12.5px' }}
+                      onClick={() => setSelectedCoordinationRequest(req)}
+                    >
+                      <MessageSquare size={14} />
+                      Coordination Chat ({req.liveMessages.length})
+                    </button>
+
+                    <button 
+                      className="btn-primary"
+                      style={{ flex: 1, padding: '9px', fontSize: '12.5px', backgroundColor: 'var(--status-success)' }}
+                      onClick={() => handleCompleteWithCelebration(req.id)}
+                    >
+                      <CheckCircle2 size={14} />
+                      Mark Completed
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </>
+              ))
+            )}
+          </div>
         )}
       </div>
 
-      {/* Live Coordination Chat Drawer */}
+      {/* Live Coordination Chat Modal / Drawer */}
       {selectedCoordinationRequest && (
         <div className="modal-backdrop" onClick={() => setSelectedCoordinationRequest(null)}>
-          <div className="bottom-sheet" onClick={e => e.stopPropagation()} style={{ maxHeight: '85%' }}>
+          <div className="bottom-sheet" onClick={e => e.stopPropagation()} style={{ maxHeight: '88%' }}>
             <div className="sheet-handle" />
             <div className="sheet-header">
               <div>
-                <h3 className="sheet-title">Resident Chat Coordination</h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span className="badge-verified-resident" style={{ fontSize: '10px' }}>Direct Neighbor Link</span>
+                  <button 
+                    onClick={handleEscalateSOS}
+                    style={{ background: 'none', border: 'none', color: 'var(--status-error)', fontSize: '11px', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px' }}
+                  >
+                    <ShieldAlert size={12} /> SOS Auxiliary Dispatch
+                  </button>
+                </div>
+                <h3 className="sheet-title" style={{ marginTop: '2px' }}>
+                  Resident Chat Coordination
+                </h3>
                 <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
                   Encrypted within {selectedCoordinationRequest.requesterPrecinct}
                 </p>
               </div>
               <button 
                 onClick={() => setSelectedCoordinationRequest(null)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: '4px' }}
               >
-                &times;
+                <X size={20} />
               </button>
             </div>
 
             {/* Message History */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '240px', overflowY: 'auto', padding: '6px 0' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '240px', overflowY: 'auto', padding: '6px 2px' }}>
               {selectedCoordinationRequest.liveMessages.map((msg, i) => (
                 <div 
                   key={i} 
@@ -385,15 +465,46 @@ export const CommunityBuddyScreen: React.FC = () => {
                     backgroundColor: msg.senderId === currentUser.id ? 'var(--sd-crimson-subtle)' : 'var(--bg-subtle)',
                     padding: '8px 12px',
                     borderRadius: 'var(--radius-sm)',
-                    borderLeft: msg.senderId === currentUser.id ? '3px solid var(--sd-crimson)' : '3px solid var(--text-tertiary)'
+                    borderLeft: msg.senderId === currentUser.id ? '3px solid var(--sd-crimson)' : '3px solid var(--text-tertiary)',
+                    alignSelf: msg.senderId === currentUser.id ? 'flex-end' : 'flex-start',
+                    maxWidth: '88%'
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', fontWeight: 700, color: 'var(--text-secondary)', gap: '12px' }}>
                     <span>{msg.senderName}</span>
                     <span>{msg.timestamp}</span>
                   </div>
                   <p style={{ fontSize: '13px', marginTop: '2px', color: 'var(--text-primary)' }}>{msg.text}</p>
                 </div>
+              ))}
+            </div>
+
+            {/* Quick response chips */}
+            <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', padding: '2px 0' }}>
+              {[
+                "I'm at the guardhouse",
+                "Bringing parcel trolley now",
+                "Arrived at your doorstep",
+                "Wheelchair is ready"
+              ].map((chip, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleQuickSend(chip)}
+                  style={{
+                    background: 'var(--bg-subtle)',
+                    border: 'var(--border-light)',
+                    borderRadius: 'var(--radius-full)',
+                    padding: '4px 10px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: 'var(--text-secondary)',
+                    whiteSpace: 'nowrap',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {chip}
+                </button>
               ))}
             </div>
 
@@ -404,7 +515,7 @@ export const CommunityBuddyScreen: React.FC = () => {
                 value={chatInput} 
                 onChange={e => setChatInput(e.target.value)} 
                 placeholder="Type coordinate message to neighbor..."
-                style={{ flex: 1, padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: 'var(--border-light)', fontSize: '13px' }}
+                style={{ flex: 1, padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: 'var(--border-light)', fontSize: '13px', outline: 'none' }}
               />
               <button type="submit" className="btn-primary" style={{ padding: '10px 14px' }}>
                 <Send size={15} />

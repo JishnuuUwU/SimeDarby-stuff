@@ -26,6 +26,7 @@ export const BottomTabs: React.FC = () => {
   return (
     <nav className="bottom-tab-bar" aria-label="Bottom Navigation">
       <button 
+        id="tab-btn-home"
         className={`tab-btn ${activeTab === 'home' ? 'active' : ''}`}
         onClick={() => setActiveTab('home')}
         aria-label="Home"
@@ -37,6 +38,7 @@ export const BottomTabs: React.FC = () => {
       </button>
 
       <button 
+        id="tab-btn-accessmap"
         className={`tab-btn ${activeTab === 'accessmap' ? 'active' : ''}`}
         onClick={() => setActiveTab('accessmap')}
         aria-label="AccessMap"
@@ -48,6 +50,7 @@ export const BottomTabs: React.FC = () => {
       </button>
 
       <button 
+        id="tab-btn-buddy"
         className={`tab-btn ${activeTab === 'buddy' ? 'active' : ''}`}
         onClick={() => setActiveTab('buddy')}
         aria-label="Community Buddy"
@@ -64,6 +67,7 @@ export const BottomTabs: React.FC = () => {
       </button>
 
       <button 
+        id="tab-btn-parking"
         className={`tab-btn ${activeTab === 'parking' ? 'active' : ''}`}
         onClick={() => setActiveTab('parking')}
         aria-label="Smart OKU Parking"
@@ -80,6 +84,7 @@ export const BottomTabs: React.FC = () => {
       </button>
 
       <button 
+        id="tab-btn-profile"
         className={`tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
         onClick={() => setActiveTab('profile')}
         aria-label="Profile and Security"

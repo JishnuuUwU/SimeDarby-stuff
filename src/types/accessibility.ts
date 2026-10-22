@@ -21,6 +21,7 @@ export interface MapMarkerFeature {
     hasBrailleButtons?: boolean;
     doorWidth?: string;
     hasEmergencyAlarm?: boolean;
+    hasAdultChangingBench?: boolean;
     lastInspected?: string;
   };
 }

@@ -13,7 +13,9 @@ import {
   LogOut, 
   HeartHandshake,
   CheckCircle2,
-  QrCode
+  QrCode,
+  Shield,
+  FileCheck
 } from 'lucide-react';
 
 export const ProfileSettingsScreen: React.FC = () => {
@@ -30,174 +32,184 @@ export const ProfileSettingsScreen: React.FC = () => {
   } = useApp();
 
   return (
-    <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <div className="tab-screen-container" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {/* Digital Resident / PRIME Pass Card */}
       <div 
         style={{
-          background: 'linear-gradient(135deg, #1E242B 0%, #111418 100%)',
+          background: 'linear-gradient(135deg, #181E26 0%, #0F141B 100%)',
           borderRadius: 'var(--radius-lg)',
-          padding: '20px',
+          padding: '22px',
           color: '#FFFFFF',
-          border: '1px solid #333F4E',
+          border: '1px solid #2D3A4B',
           boxShadow: 'var(--shadow-md)',
-          position: 'relative'
+          position: 'relative',
+          overflow: 'hidden'
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
-            <span style={{ fontSize: '11px', color: 'var(--sd-gold)', fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase' }}>
-              SIME DARBY PROPERTY DIGITAL PASS
+            <span style={{ fontSize: '10.5px', color: 'var(--sd-gold)', fontWeight: 800, letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+              SIME DARBY PROPERTY DIGITAL RESIDENT PASS
             </span>
-            <h3 style={{ fontSize: '18px', fontWeight: 800, marginTop: '2px' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: 800, marginTop: '3px' }}>
               {currentUser.name}
             </h3>
-            <p style={{ fontSize: '12px', color: '#98A2B3' }}>
+            <p style={{ fontSize: '12px', color: '#94A3B8' }}>
               {currentUser.email}
             </p>
           </div>
 
           <div style={{
-            width: '44px',
-            height: '44px',
+            width: '46px',
+            height: '46px',
             backgroundColor: '#FFFFFF',
-            borderRadius: '8px',
+            borderRadius: '10px',
             padding: '4px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#121826'
+            color: '#0F172A',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
           }}>
-            <QrCode size={36} />
+            <QrCode size={38} />
           </div>
         </div>
 
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: '16px', paddingTop: '12px', display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.12)', marginTop: '16px', paddingTop: '12px', display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
           <div>
-            <span style={{ color: '#98A2B3', fontSize: '10px' }}>PRECINCT & UNIT</span>
-            <div style={{ fontWeight: 700, color: '#FFFFFF' }}>
-              {currentUser.precinct ? `${currentUser.precinct} (${currentUser.unitNo})` : 'Public Visitor'}
+            <span style={{ color: '#94A3B8', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>PRECINCT & UNIT</span>
+            <div style={{ fontWeight: 800, color: '#FFFFFF', marginTop: '2px' }}>
+              {currentUser.precinct ? `${currentUser.precinct} (${currentUser.unitNo})` : 'Public Visitor Access'}
             </div>
           </div>
 
           <div>
-            <span style={{ color: '#98A2B3', fontSize: '10px' }}>PRIME TIER</span>
-            <div style={{ fontWeight: 700, color: 'var(--sd-gold)' }}>
+            <span style={{ color: '#94A3B8', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>PRIME TIER</span>
+            <div style={{ fontWeight: 800, color: 'var(--sd-gold)', marginTop: '2px' }}>
               {currentUser.primeTier || 'Standard Guest'}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Role Persona Switcher Quick Button */}
-      <div className="sd-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '8px',
-            backgroundColor: 'var(--sd-crimson-subtle)',
-            color: 'var(--sd-crimson)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <Sliders size={18} />
-          </div>
-          <div>
-            <h4 style={{ fontSize: '14px', fontWeight: 700 }}>Switch User Persona</h4>
-            <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-              Currently: {currentUser.role.toUpperCase()}
-            </p>
-          </div>
-        </div>
-
-        <button 
-          className="btn-outline-crimson"
-          onClick={() => setIsRoleModalOpen(true)}
-        >
-          Change Persona
-        </button>
-      </div>
-
-      {/* Accessibility & Ergonomic Preferences */}
-      <div className="sd-card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-        <h4 style={{ fontSize: '14px', fontWeight: 800 }}>Universal Accessibility Settings</h4>
-
-        {/* High Contrast */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="adaptive-grid-2col" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        {/* Role Persona Switcher Quick Card */}
+        <div className="sd-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Eye size={18} color="var(--sd-crimson)" />
+            <div style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '10px',
+              backgroundColor: 'var(--sd-crimson-subtle)',
+              color: 'var(--sd-crimson)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Sliders size={18} />
+            </div>
             <div>
-              <div style={{ fontSize: '13px', fontWeight: 700 }}>High Contrast Mode</div>
-              <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                Enhanced contrast ratios for low vision & sunlight readability
-              </div>
+              <h4 style={{ fontSize: '14px', fontWeight: 800 }}>Switch User Persona</h4>
+              <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                Active: {currentUser.role.replace('_', ' ').toUpperCase()}
+              </p>
             </div>
           </div>
-          <input 
-            type="checkbox"
-            checked={highContrast}
-            onChange={e => setHighContrast(e.target.checked)}
-            style={{ width: '18px', height: '18px', accentColor: 'var(--sd-crimson)' }}
-          />
-        </div>
 
-        {/* Font Scaling */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: 'var(--border-subtle)', paddingTop: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Type size={18} color="var(--oku-blue)" />
-            <div>
-              <div style={{ fontSize: '13px', fontWeight: 700 }}>Text Scaling</div>
-              <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                Scale base font size for improved legibility
-              </div>
-            </div>
-          </div>
-          <select 
-            value={fontSize}
-            onChange={e => setFontSize(e.target.value as any)}
-            style={{
-              padding: '6px 10px',
-              borderRadius: 'var(--radius-sm)',
-              border: 'var(--border-light)',
-              fontSize: '12px',
-              fontWeight: 700
-            }}
+          <button 
+            className="btn-outline-crimson"
+            onClick={() => setIsRoleModalOpen(true)}
+            id="profile-btn-change-persona"
           >
-            <option value="normal">Normal (100%)</option>
-            <option value="large">Large (112%)</option>
-            <option value="xlarge">Extra Large (125%)</option>
-          </select>
+            Change Persona
+          </button>
         </div>
 
-        {/* Voice Guidance */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: 'var(--border-subtle)', paddingTop: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Volume2 size={18} color="var(--status-success)" />
-            <div>
-              <div style={{ fontSize: '13px', fontWeight: 700 }}>Speech Synthesis Audio Cues</div>
-              <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                Turn-by-turn spoken guidance along step-free paths
+        {/* Universal Accessibility & Ergonomic Preferences */}
+        <div className="sd-card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <h4 style={{ fontSize: '14.5px', fontWeight: 800, color: 'var(--text-primary)' }}>Universal Accessibility Settings</h4>
+
+          {/* High Contrast */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Eye size={18} color="var(--sd-crimson)" />
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 700 }}>High Contrast Mode</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                  Enhanced contrast ratios for low vision & sunlight readability
+                </div>
               </div>
             </div>
+            <input 
+              type="checkbox"
+              checked={highContrast}
+              onChange={e => setHighContrast(e.target.checked)}
+              style={{ width: '18px', height: '18px', accentColor: 'var(--sd-crimson)', cursor: 'pointer' }}
+            />
           </div>
-          <input 
-            type="checkbox"
-            checked={voiceGuidanceEnabled}
-            onChange={e => {
-              setVoiceGuidanceEnabled(e.target.checked);
-              if (e.target.checked) speakText('Spoken audio guidance is now activated.');
-            }}
-            style={{ width: '18px', height: '18px', accentColor: 'var(--sd-crimson)' }}
-          />
+
+          {/* Font Scaling */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: 'var(--border-subtle)', paddingTop: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Type size={18} color="var(--oku-blue)" />
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 700 }}>Text Scaling</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                  Scale base typography size for improved legibility
+                </div>
+              </div>
+            </div>
+            <select 
+              value={fontSize}
+              onChange={e => setFontSize(e.target.value as any)}
+              style={{
+                padding: '6px 10px',
+                borderRadius: 'var(--radius-sm)',
+                border: 'var(--border-light)',
+                fontSize: '12px',
+                fontWeight: 700,
+                outline: 'none',
+                backgroundColor: 'var(--bg-card)'
+              }}
+            >
+              <option value="normal">Normal (100%)</option>
+              <option value="large">Large (112%)</option>
+              <option value="xlarge">Extra Large (125%)</option>
+            </select>
+          </div>
+
+          {/* Voice Guidance */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: 'var(--border-subtle)', paddingTop: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Volume2 size={18} color="var(--status-success)" />
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 700 }}>Speech Synthesis Audio Cues</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                  Spoken turn-by-turn guidance along step-free paths
+                </div>
+              </div>
+            </div>
+            <input 
+              type="checkbox"
+              checked={voiceGuidanceEnabled}
+              onChange={e => {
+                setVoiceGuidanceEnabled(e.target.checked);
+                if (e.target.checked) speakText('Spoken audio guidance is now activated.');
+              }}
+              style={{ width: '18px', height: '18px', accentColor: 'var(--sd-crimson)', cursor: 'pointer' }}
+            />
+          </div>
         </div>
       </div>
 
       {/* Sime Darby Official Compliance Standards */}
-      <div style={{ backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', padding: '12px 14px', fontSize: '11px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-        <p><strong>Standards & Verification:</strong></p>
+      <div style={{ backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', padding: '14px 16px', fontSize: '11.5px', color: 'var(--text-secondary)', lineHeight: 1.5, border: 'var(--border-light)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>
+          <FileCheck size={14} color="var(--sd-crimson)" />
+          <span>Malaysian Universal Accessibility Compliance:</span>
+        </div>
         <p>• Malaysia Standard MS 1184:2014 Code of Practice on Access for Disabled Persons to Public Buildings.</p>
-        <p>• Integrated with Sime Darby Property Polis Bantuan (Township Auxiliary Police).</p>
+        <p>• Integrated directly with Sime Darby Property Polis Bantuan (Township Auxiliary Police) dispatch terminal.</p>
       </div>
     </div>
   );

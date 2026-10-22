@@ -11,7 +11,10 @@ import {
   HeartHandshake, 
   ArrowRight,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  Award,
+  Shield,
+  Layers
 } from 'lucide-react';
 
 export const HomeOverview: React.FC = () => {
@@ -36,11 +39,11 @@ export const HomeOverview: React.FC = () => {
   const openBuddyCount = buddyRequests.filter(r => r.status === 'open').length;
 
   return (
-    <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      {/* Hero Welcome Banner */}
+    <div className="tab-screen-container" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* Hero Welcome Banner with Sime Darby Crimson Gradient & Gold Motif */}
       <div 
         style={{
-          background: 'linear-gradient(135deg, #8B1D24 0%, #641117 100%)',
+          background: 'linear-gradient(135deg, #8B1D24 0%, #600E14 100%)',
           borderRadius: 'var(--radius-lg)',
           padding: '20px',
           color: '#FFFFFF',
@@ -55,26 +58,27 @@ export const HomeOverview: React.FC = () => {
               style={{
                 fontSize: '11px',
                 fontWeight: 700,
-                backgroundColor: 'rgba(255,255,255,0.2)',
-                padding: '3px 8px',
+                backgroundColor: 'rgba(255,255,255,0.18)',
+                padding: '3px 9px',
                 borderRadius: 'var(--radius-full)',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '4px'
+                gap: '4px',
+                border: '1px solid rgba(255,255,255,0.2)'
               }}
             >
               <Sparkles size={11} color="var(--sd-gold)" />
               {activeTownship.name}
             </span>
 
-            {currentUser.isVerifiedResident && (
+            {currentUser.isVerifiedResident ? (
               <span 
                 style={{
                   fontSize: '11px',
                   fontWeight: 700,
-                  backgroundColor: 'rgba(18, 183, 106, 0.3)',
-                  border: '1px solid #12B76A',
-                  color: '#A6F4C5',
+                  backgroundColor: 'rgba(16, 185, 129, 0.25)',
+                  border: '1px solid #10B981',
+                  color: '#A7F3D0',
                   padding: '3px 8px',
                   borderRadius: 'var(--radius-full)',
                   display: 'inline-flex',
@@ -85,30 +89,47 @@ export const HomeOverview: React.FC = () => {
                 <ShieldCheck size={11} />
                 Verified Resident
               </span>
+            ) : (
+              <span 
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  backgroundColor: 'rgba(255, 255, 255, 0.14)',
+                  padding: '3px 8px',
+                  borderRadius: 'var(--radius-full)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                {currentUser.role.replace('_', ' ').toUpperCase()}
+              </span>
             )}
           </div>
 
-          <h2 style={{ fontSize: '20px', fontWeight: 800, fontFamily: 'var(--font-display)', marginBottom: '4px' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: 800, fontFamily: 'var(--font-display)', marginBottom: '4px', letterSpacing: '-0.3px' }}>
             Selamat Datang, {currentUser.name.split(' ')[0]}
           </h2>
-          <p style={{ fontSize: '13px', color: '#F2F4F7', lineHeight: 1.4, marginBottom: '16px' }}>
-            Inclusive living & step-free spatial mobility across Sime Darby Property developments.
+          <p style={{ fontSize: '13px', color: '#F1F5F9', lineHeight: 1.45, marginBottom: '16px' }}>
+            Inclusive township living & step-free spatial mobility across Sime Darby Property masterplans.
           </p>
 
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <button 
               className="btn-primary"
               style={{
                 backgroundColor: '#FFFFFF',
                 color: 'var(--sd-crimson)',
-                padding: '8px 14px',
-                fontSize: '12px',
-                boxShadow: 'none'
+                padding: '9px 15px',
+                fontSize: '12.5px',
+                boxShadow: 'none',
+                fontWeight: 800
               }}
               onClick={() => {
                 setActiveTab('accessmap');
                 speakText('Opening AccessMap for step-free spatial navigation.');
               }}
+              id="home-btn-open-map"
             >
               <Compass size={14} />
               Open AccessMap
@@ -118,14 +139,16 @@ export const HomeOverview: React.FC = () => {
               style={{
                 backgroundColor: 'rgba(255,255,255,0.15)',
                 color: '#FFFFFF',
-                border: '1px solid rgba(255,255,255,0.3)',
+                border: '1px solid rgba(255,255,255,0.28)',
                 borderRadius: 'var(--radius-md)',
-                padding: '8px 12px',
-                fontSize: '12px',
-                fontWeight: 600,
-                cursor: 'pointer'
+                padding: '9px 13px',
+                fontSize: '12.5px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'var(--transition-fast)'
               }}
               onClick={() => setIsRoleModalOpen(true)}
+              id="home-btn-switch-role"
             >
               Switch Role
             </button>
@@ -138,235 +161,246 @@ export const HomeOverview: React.FC = () => {
             position: 'absolute',
             right: '-30px',
             bottom: '-40px',
-            width: '160px',
-            height: '160px',
+            width: '180px',
+            height: '180px',
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(197, 168, 128, 0.25) 0%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(197, 168, 128, 0.28) 0%, transparent 70%)',
             pointerEvents: 'none'
           }}
         />
       </div>
 
-      {/* Feature 1: AccessMap Card */}
-      <div 
-        className="sd-card" 
-        style={{ cursor: 'pointer', borderLeft: '4px solid var(--oku-blue)' }}
-        onClick={() => setActiveTab('accessmap')}
-      >
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '10px',
-              backgroundColor: 'var(--oku-blue-light)',
-              color: 'var(--oku-blue)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <Map size={22} />
-            </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 800 }}>AccessMap Directory</h3>
-                <span className="badge-oku">Step-Free</span>
+      {/* Core Township Accessibility Pillars Grid (Adaptive 2-col on Foldable/Tablet) */}
+      <div className="adaptive-grid-2col" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        {/* Pillar 1: AccessMap Directory */}
+        <div 
+          className="sd-card" 
+          style={{ cursor: 'pointer', borderLeft: '4px solid var(--oku-blue)' }}
+          onClick={() => setActiveTab('accessmap')}
+          id="card-nav-accessmap"
+        >
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '12px',
+                backgroundColor: 'var(--oku-blue-light)',
+                color: 'var(--oku-blue)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 2px 6px rgba(0, 98, 210, 0.15)'
+              }}>
+                <Map size={22} />
               </div>
-              <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                Continuous obstacle-free routing in {activeTownship.name}
-              </p>
-            </div>
-          </div>
-          <ArrowRight size={18} color="var(--text-tertiary)" />
-        </div>
-
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '10px' }}>
-          <span style={{ fontSize: '11px', backgroundColor: 'var(--bg-subtle)', padding: '4px 8px', borderRadius: '4px' }}>
-            ♿ Wheelchair Ramps (1:12 Slope)
-          </span>
-          <span style={{ fontSize: '11px', backgroundColor: 'var(--bg-subtle)', padding: '4px 8px', borderRadius: '4px' }}>
-            🟡 Tactile Paving Routes
-          </span>
-          <span style={{ fontSize: '11px', backgroundColor: 'var(--bg-subtle)', padding: '4px 8px', borderRadius: '4px' }}>
-            🛗 Live Elevators
-          </span>
-          <span style={{ fontSize: '11px', backgroundColor: 'var(--bg-subtle)', padding: '4px 8px', borderRadius: '4px' }}>
-            🚻 Tandas OKU
-          </span>
-        </div>
-      </div>
-
-      {/* Feature 2: Community Buddy System Card */}
-      <div 
-        className="sd-card" 
-        style={{ cursor: 'pointer', borderLeft: '4px solid var(--status-success)' }}
-        onClick={() => setActiveTab('buddy')}
-      >
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '10px',
-              backgroundColor: 'var(--status-success-bg)',
-              color: 'var(--status-success)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <Users size={22} />
-            </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 800 }}>Community Buddy Network</h3>
-                <span className="badge-verified-resident">Precinct Match</span>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <h3 style={{ fontSize: '15.5px', fontWeight: 800 }}>AccessMap Directory</h3>
+                  <span className="badge-oku" style={{ fontSize: '10px' }}>Step-Free</span>
+                </div>
+                <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  Continuous obstacle-free routing in {activeTownship.name}
+                </p>
               </div>
-              <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                Verified neighbor assistance for physical tasks & events
-              </p>
             </div>
+            <ArrowRight size={18} color="var(--text-tertiary)" />
           </div>
-          <ArrowRight size={18} color="var(--text-tertiary)" />
-        </div>
 
-        <div style={{
-          backgroundColor: 'var(--bg-subtle)',
-          borderRadius: 'var(--radius-sm)',
-          padding: '10px 12px',
-          marginTop: '8px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <HeartHandshake size={16} color="var(--sd-crimson)" />
-            <span style={{ fontSize: '12px', fontWeight: 600 }}>
-              {openBuddyCount} neighbors currently requesting assistance
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '10px' }}>
+            <span style={{ fontSize: '11px', backgroundColor: 'var(--bg-subtle)', padding: '4px 8px', borderRadius: '5px', fontWeight: 600 }}>
+              Wheelchair Ramps (≤1:12)
+            </span>
+            <span style={{ fontSize: '11px', backgroundColor: 'var(--bg-subtle)', padding: '4px 8px', borderRadius: '5px', fontWeight: 600 }}>
+              Tactile Paving Paths
+            </span>
+            <span style={{ fontSize: '11px', backgroundColor: 'var(--bg-subtle)', padding: '4px 8px', borderRadius: '5px', fontWeight: 600 }}>
+              Live Elevators
+            </span>
+            <span style={{ fontSize: '11px', backgroundColor: 'var(--bg-subtle)', padding: '4px 8px', borderRadius: '5px', fontWeight: 600 }}>
+              Tandas OKU
             </span>
           </div>
-          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--sd-crimson)' }}>
-            View & Help →
-          </span>
         </div>
-      </div>
 
-      {/* Feature 3: Smart OKU Parking Protection Card */}
-      <div 
-        className="sd-card" 
-        style={{ cursor: 'pointer', borderLeft: '4px solid var(--tactile-yellow)' }}
-        onClick={() => setActiveTab('parking')}
-      >
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {/* Pillar 2: Community Buddy Network */}
+        <div 
+          className="sd-card" 
+          style={{ cursor: 'pointer', borderLeft: '4px solid var(--status-success)' }}
+          onClick={() => setActiveTab('buddy')}
+          id="card-nav-buddy"
+        >
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '12px',
+                backgroundColor: 'var(--status-success-bg)',
+                color: 'var(--status-success)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 2px 6px rgba(16, 185, 129, 0.15)'
+              }}>
+                <Users size={22} />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <h3 style={{ fontSize: '15.5px', fontWeight: 800 }}>Community Buddy System</h3>
+                  <span className="badge-verified-resident" style={{ fontSize: '10px' }}>Precinct Match</span>
+                </div>
+                <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  Verified resident support for physical tasks & events
+                </p>
+              </div>
+            </div>
+            <ArrowRight size={18} color="var(--text-tertiary)" />
+          </div>
+
+          <div style={{
+            backgroundColor: 'var(--bg-subtle)',
+            borderRadius: 'var(--radius-sm)',
+            padding: '10px 12px',
+            marginTop: '8px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <HeartHandshake size={16} color="var(--sd-crimson)" />
+              <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                {openBuddyCount} neighbors currently requesting assistance
+              </span>
+            </div>
+            <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--sd-crimson)' }}>
+              View & Help →
+            </span>
+          </div>
+        </div>
+
+        {/* Pillar 3: Smart OKU Parking Protection */}
+        <div 
+          className="sd-card" 
+          style={{ cursor: 'pointer', borderLeft: '4px solid var(--tactile-yellow)' }}
+          onClick={() => setActiveTab('parking')}
+          id="card-nav-parking"
+        >
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '12px',
+                backgroundColor: 'var(--tactile-yellow-bg)',
+                color: 'var(--tactile-yellow)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 2px 6px rgba(217, 119, 6, 0.15)'
+              }}>
+                <Car size={22} />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <h3 style={{ fontSize: '15.5px', fontWeight: 800 }}>Smart OKU Parking</h3>
+                  <span className="badge-warning" style={{ fontSize: '10px' }}>IoT Telemetry</span>
+                </div>
+                <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  Live bay monitoring & auxiliary police enforcement
+                </p>
+              </div>
+            </div>
+            <ArrowRight size={18} color="var(--text-tertiary)" />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '10px' }}>
             <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '10px',
-              backgroundColor: 'var(--tactile-yellow-bg)',
-              color: 'var(--tactile-yellow)',
+              backgroundColor: 'var(--status-success-bg)',
+              border: '1px solid #A7F3D0',
+              borderRadius: 'var(--radius-sm)',
+              padding: '8px 10px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              gap: '8px'
             }}>
-              <Car size={22} />
-            </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 800 }}>Smart OKU Parking</h3>
-                <span className="badge-warning">Live Bays</span>
+              <CheckCircle size={16} color="var(--status-success)" />
+              <div>
+                <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--status-success)' }}>
+                  {availableBaysCount} / {totalTownshipBays}
+                </div>
+                <div style={{ fontSize: '10.5px', color: 'var(--text-secondary)' }}>Bays Vacant</div>
               </div>
-              <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                Real-time sensors & Polis Bantuan auxiliary enforcement
-              </p>
             </div>
-          </div>
-          <ArrowRight size={18} color="var(--text-tertiary)" />
-        </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '10px' }}>
-          <div style={{
-            backgroundColor: 'var(--status-success-bg)',
-            border: '1px solid #A6F4C5',
-            borderRadius: 'var(--radius-sm)',
-            padding: '8px 10px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
-            <CheckCircle size={16} color="var(--status-success)" />
-            <div>
-              <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--status-success)' }}>
-                {availableBaysCount} / {totalTownshipBays}
+            <div style={{
+              backgroundColor: 'var(--status-error-bg)',
+              border: '1px solid #FECACA',
+              borderRadius: 'var(--radius-sm)',
+              padding: '8px 10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <AlertTriangle size={16} color="var(--status-error)" />
+              <div>
+                <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--status-error)' }}>
+                  Quick Report
+                </div>
+                <div style={{ fontSize: '10.5px', color: 'var(--text-secondary)' }}>Flag Misuse</div>
               </div>
-              <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Bays Vacant</div>
-            </div>
-          </div>
-
-          <div style={{
-            backgroundColor: 'var(--status-error-bg)',
-            border: '1px solid #FECDCA',
-            borderRadius: 'var(--radius-sm)',
-            padding: '8px 10px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
-            <AlertTriangle size={16} color="var(--status-error)" />
-            <div>
-              <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--status-error)' }}>
-                Quick Report
-              </div>
-              <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Flag Misuse</div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Emergency & Auxiliary Police Support Hotline */}
-      <div 
-        style={{
-          backgroundColor: '#1E242B',
-          color: '#FFFFFF',
-          borderRadius: 'var(--radius-md)',
-          padding: '14px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '50%',
-            backgroundColor: 'var(--sd-crimson)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <PhoneCall size={18} />
-          </div>
-          <div>
-            <h4 style={{ fontSize: '13px', fontWeight: 700 }}>Polis Bantuan SD Property</h4>
-            <p style={{ fontSize: '11px', color: '#98A2B3' }}>24/7 Accessibility Escort & Patrol</p>
-          </div>
-        </div>
-
-        <a 
-          href="tel:0378495000"
+        {/* Emergency & Auxiliary Police Support Hotline */}
+        <div 
           style={{
-            backgroundColor: 'rgba(255,255,255,0.12)',
+            backgroundColor: '#0F172A',
             color: '#FFFFFF',
-            textDecoration: 'none',
-            fontSize: '12px',
-            fontWeight: 700,
-            padding: '6px 12px',
-            borderRadius: 'var(--radius-sm)',
-            border: '1px solid rgba(255,255,255,0.2)'
+            borderRadius: 'var(--radius-md)',
+            padding: '14px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            boxShadow: 'var(--shadow-md)'
           }}
         >
-          Call 24/7
-        </a>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '50%',
+              backgroundColor: 'var(--sd-crimson)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 2px 6px rgba(139, 29, 36, 0.4)'
+            }}>
+              <PhoneCall size={18} />
+            </div>
+            <div>
+              <h4 style={{ fontSize: '13.5px', fontWeight: 800 }}>Polis Bantuan SD Property</h4>
+              <p style={{ fontSize: '11px', color: '#CBD5E1' }}>24/7 Accessibility Escort & Auxiliary Patrol</p>
+            </div>
+          </div>
+
+          <a 
+            href="tel:0378495000"
+            style={{
+              backgroundColor: 'rgba(255,255,255,0.14)',
+              color: '#FFFFFF',
+              textDecoration: 'none',
+              fontSize: '12px',
+              fontWeight: 800,
+              padding: '6px 12px',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid rgba(255,255,255,0.22)'
+            }}
+          >
+            Call 24/7
+          </a>
+        </div>
       </div>
     </div>
   );
