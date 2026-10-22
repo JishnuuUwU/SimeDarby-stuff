@@ -17,7 +17,12 @@ import {
   ShieldCheck,
   ChevronRight,
   Accessibility,
-  CornerDownRight
+  CornerDownRight,
+  Plus,
+  Minus,
+  Locate,
+  Crosshair,
+  RotateCcw
 } from 'lucide-react';
 import { RoutePlannerModal } from './RoutePlannerModal';
 import { TurnByTurnModal } from './TurnByTurnModal';
@@ -33,12 +38,70 @@ export const AccessMapScreen: React.FC = () => {
     selectedMarker,
     setSelectedMarker,
     speakText,
-    currentUser
+    currentUser,
+    addToast
   } = useApp();
 
   const [isRouteModalOpen, setIsRouteModalOpen] = useState(false);
   const [isTurnByTurnOpen, setIsTurnByTurnOpen] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [gpsTrackingActive, setGpsTrackingActive] = useState(true);
+
+  // Prototype Simulated GPS user position (% coordinates on map canvas)
+  const [userLocation, setUserLocation] = useState({ x: 38, y: 38, accuracyMeters: 4 });
+
+  // Handle Drag / Pan Events
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    setPanOffset({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // Touch Support for mobile panning
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      setIsDragging(true);
+      setDragStart({ x: e.touches[0].clientX - panOffset.x, y: e.touches[0].clientY - panOffset.y });
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging || e.touches.length !== 1) return;
+    setPanOffset({
+      x: e.touches[0].clientX - dragStart.x,
+      y: e.touches[0].clientY - dragStart.y
+    });
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+  };
+
+  const handleRecenterGPS = () => {
+    setPanOffset({ x: 0, y: 0 });
+    setZoomLevel(1.1);
+    setGpsTrackingActive(true);
+    addToast({
+      type: 'info',
+      title: 'GPS Signal Locked',
+      message: 'Accuracy ±4m. Continuous step-free sensor telemetry active.'
+    });
+    speakText(`GPS locked at ${activeTownship.name} Promenade. Tracking real-time accessible route.`);
+  };
 
   // Filter features by township and active toggles
   const visibleFeatures = allFeatures.filter(f => {
@@ -256,10 +319,19 @@ export const AccessMapScreen: React.FC = () => {
           backgroundColor: '#E7EDE9',
           overflow: 'hidden',
           display: 'flex',
-          flexDirection: 'column'
+          flexDirection: 'column',
+          cursor: isDragging ? 'grabbing' : 'grab',
+          touchAction: 'none'
         }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
-        {/* Vector Architectural Blueprint Canvas */}
+        {/* Vector Architectural Blueprint Canvas with Real-Time Pan & Zoom Transform */}
         <div 
           style={{
             position: 'absolute',
@@ -268,9 +340,9 @@ export const AccessMapScreen: React.FC = () => {
             backgroundSize: '24px 24px',
             backgroundImage: 'radial-gradient(circle, #CBD5E1 1.2px, transparent 1.2px)',
             userSelect: 'none',
-            transform: `scale(${zoomLevel})`,
+            transform: `translate3d(${panOffset.x}px, ${panOffset.y}px, 0px) scale(${zoomLevel})`,
             transformOrigin: 'center center',
-            transition: 'transform 200ms ease'
+            transition: isDragging ? 'none' : 'transform 200ms cubic-bezier(0.16, 1, 0.3, 1)'
           }}
         >
           <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0 }}>
@@ -544,6 +616,68 @@ export const AccessMapScreen: React.FC = () => {
               </div>
             );
           })}
+
+          {/* Prototype Live GPS User Location Marker with Pulse Radar */}
+          <div
+            style={{
+              position: 'absolute',
+              left: `${userLocation.x}%`,
+              top: `${userLocation.y}%`,
+              transform: 'translate(-50%, -50%)',
+              zIndex: 14,
+              pointerEvents: 'none',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center'
+            }}
+          >
+            {/* GPS Accuracy Halo Pulse */}
+            <div
+              style={{
+                position: 'absolute',
+                width: '46px',
+                height: '46px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(0, 98, 210, 0.16)',
+                border: '1.5px solid rgba(0, 98, 210, 0.45)',
+                animation: 'routeMarch 2s ease-out infinite'
+              }}
+            />
+
+            {/* GPS Core Pin */}
+            <div
+              style={{
+                width: '18px',
+                height: '18px',
+                borderRadius: '50%',
+                backgroundColor: 'var(--oku-blue)',
+                border: '3px solid #FFFFFF',
+                boxShadow: '0 2px 8px rgba(0, 98, 210, 0.6)',
+                zIndex: 2
+              }}
+            />
+
+            {/* "You Are Here" GPS Pill */}
+            <div
+              style={{
+                marginTop: '6px',
+                backgroundColor: 'var(--text-primary)',
+                color: '#FFFFFF',
+                padding: '2px 8px',
+                borderRadius: 'var(--radius-full)',
+                fontSize: '9.5px',
+                fontWeight: 800,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                boxShadow: 'var(--shadow-sm)',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981' }} />
+              <span>You (±4m)</span>
+            </div>
+          </div>
         </div>
 
         {/* Floating Controls (Zoom, Compass, Voice Guidance) */}
@@ -558,68 +692,114 @@ export const AccessMapScreen: React.FC = () => {
             zIndex: 10
           }}
         >
-          {/* Compass Orient */}
-          <div 
-            style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.94)',
-              backdropFilter: 'blur(8px)',
-              borderRadius: 'var(--radius-sm)',
-              padding: '6px 10px',
-              boxShadow: 'var(--shadow-sm)',
-              fontSize: '11px',
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              border: 'var(--border-light)'
-            }}
-          >
-            <Compass size={14} color="var(--sd-crimson)" />
-            <span>North Oriented</span>
+          {/* Compass Orient & Recenter Button */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-end' }}>
+            <button 
+              onClick={() => {
+                setPanOffset({ x: 0, y: 0 });
+                setZoomLevel(1);
+              }}
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                backdropFilter: 'blur(8px)',
+                borderRadius: 'var(--radius-full)',
+                padding: '6px 12px',
+                boxShadow: 'var(--shadow-sm)',
+                fontSize: '11px',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                border: 'var(--border-light)',
+                cursor: 'pointer',
+                color: 'var(--text-primary)',
+                transition: 'var(--transition-fast)'
+              }}
+              title="Reset View to Center"
+            >
+              <Compass size={14} color="var(--sd-crimson)" />
+              <span>North Oriented</span>
+            </button>
+
+            {/* GPS My-Location Recenter Button */}
+            <button
+              onClick={handleRecenterGPS}
+              style={{
+                width: '38px',
+                height: '38px',
+                backgroundColor: gpsTrackingActive ? '#FFFFFF' : 'var(--bg-card)',
+                borderRadius: '50%',
+                boxShadow: '0 3px 10px rgba(0, 98, 210, 0.22)',
+                border: gpsTrackingActive ? '2px solid var(--oku-blue)' : 'var(--border-light)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: 'var(--oku-blue)',
+                transition: 'var(--transition-fast)'
+              }}
+              title="Locate My Position (GPS)"
+              aria-label="Locate My Position (GPS)"
+            >
+              <Locate size={18} />
+            </button>
           </div>
 
-          {/* Zoom Controls */}
+          {/* Premium Zoom In / Out Controls */}
           <div 
             style={{
               display: 'flex',
               flexDirection: 'column',
               backgroundColor: '#FFFFFF',
-              borderRadius: 'var(--radius-sm)',
-              boxShadow: 'var(--shadow-md)',
+              borderRadius: 'var(--radius-md)',
+              boxShadow: '0 4px 14px rgba(15, 23, 42, 0.12)',
               border: 'var(--border-light)',
               overflow: 'hidden'
             }}
           >
             <button
-              onClick={() => setZoomLevel(prev => Math.min(prev + 0.15, 1.45))}
+              onClick={() => setZoomLevel(prev => Math.min(prev + 0.2, 1.8))}
               style={{
-                width: '34px',
-                height: '34px',
+                width: '38px',
+                height: '38px',
                 border: 'none',
-                background: 'transparent',
-                fontWeight: 800,
-                fontSize: '16px',
+                background: '#FFFFFF',
+                color: 'var(--text-primary)',
                 cursor: 'pointer',
-                borderBottom: '1px solid #E2E8F0'
+                borderBottom: '1px solid #E2E8F0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background var(--transition-fast)'
               }}
               title="Zoom In"
+              aria-label="Zoom In"
+              onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#F1F5F9')}
+              onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#FFFFFF')}
             >
-              +
+              <Plus size={18} strokeWidth={2.5} />
             </button>
+
             <button
-              onClick={() => setZoomLevel(prev => Math.max(prev - 0.15, 0.85))}
+              onClick={() => setZoomLevel(prev => Math.max(prev - 0.2, 0.7))}
               style={{
-                width: '34px',
-                height: '34px',
+                width: '38px',
+                height: '38px',
                 border: 'none',
-                background: 'transparent',
-                fontWeight: 800,
-                fontSize: '16px',
-                cursor: 'pointer'
+                background: '#FFFFFF',
+                color: 'var(--text-primary)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background var(--transition-fast)'
               }}
               title="Zoom Out"
+              aria-label="Zoom Out"
+              onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#F1F5F9')}
+              onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#FFFFFF')}
             >
-              −
+              <Minus size={18} strokeWidth={2.5} />
             </button>
           </div>
         </div>

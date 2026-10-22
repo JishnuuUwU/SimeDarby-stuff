@@ -14,7 +14,8 @@ import {
   AlertTriangle,
   Award,
   Shield,
-  Layers
+  Layers,
+  Lock
 } from 'lucide-react';
 
 export const HomeOverview: React.FC = () => {
@@ -248,10 +249,18 @@ export const HomeOverview: React.FC = () => {
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <h3 style={{ fontSize: '15.5px', fontWeight: 800 }}>Community Buddy System</h3>
-                  <span className="badge-verified-resident" style={{ fontSize: '10px' }}>Precinct Match</span>
+                  {currentUser.isVerifiedResident ? (
+                    <span className="badge-verified-resident" style={{ fontSize: '10px' }}>Precinct Match</span>
+                  ) : (
+                    <span className="badge-warning" style={{ fontSize: '10px', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                      <Lock size={9} /> Residents Only
+                    </span>
+                  )}
                 </div>
                 <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                  Verified resident support for physical tasks & events
+                  {currentUser.isVerifiedResident 
+                    ? 'Verified resident support for physical tasks & events'
+                    : 'Restricted to authenticated township residents'}
                 </p>
               </div>
             </div>
@@ -270,11 +279,13 @@ export const HomeOverview: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <HeartHandshake size={16} color="var(--sd-crimson)" />
               <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                {openBuddyCount} neighbors currently requesting assistance
+                {currentUser.isVerifiedResident 
+                  ? `${openBuddyCount} neighbors currently requesting assistance`
+                  : 'Authenticated precinct link required'}
               </span>
             </div>
             <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--sd-crimson)' }}>
-              View & Help →
+              {currentUser.isVerifiedResident ? 'View & Help →' : 'Learn More →'}
             </span>
           </div>
         </div>

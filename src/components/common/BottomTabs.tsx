@@ -5,7 +5,8 @@ import {
   Map, 
   Users, 
   Car, 
-  Shield 
+  Shield,
+  Lock
 } from 'lucide-react';
 
 export const BottomTabs: React.FC = () => {
@@ -17,8 +18,12 @@ export const BottomTabs: React.FC = () => {
     currentUser 
   } = useApp();
 
-  // Active open buddy requests count
-  const openRequestsCount = buddyRequests.filter(r => r.status === 'open').length;
+  const isResident = currentUser.isVerifiedResident;
+
+  // Active open buddy requests count (only for verified residents)
+  const openRequestsCount = isResident 
+    ? buddyRequests.filter(r => r.status === 'open').length 
+    : 0;
 
   // Active parking violations count
   const activeMisuseCount = parkingBays.filter(b => b.status === 'unauthorized_misuse').length;
@@ -59,11 +64,30 @@ export const BottomTabs: React.FC = () => {
           <Users size={20} strokeWidth={activeTab === 'buddy' ? 2.5 : 2} />
         </div>
         <span>Buddy</span>
-        {openRequestsCount > 0 && (
+        {isResident && openRequestsCount > 0 ? (
           <span className="tab-badge" title={`${openRequestsCount} neighbor requests waiting`}>
             {openRequestsCount}
           </span>
-        )}
+        ) : !isResident ? (
+          <span 
+            style={{
+              position: 'absolute',
+              top: '5px',
+              right: '22%',
+              backgroundColor: 'var(--text-tertiary)',
+              color: '#FFFFFF',
+              borderRadius: '50%',
+              width: '14px',
+              height: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            title="Resident Access Only"
+          >
+            <Lock size={9} />
+          </span>
+        ) : null}
       </button>
 
       <button 

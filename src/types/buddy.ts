@@ -3,7 +3,8 @@ export type AssistanceCategory =
   | 'event_navigation' 
   | 'mobility_support' 
   | 'medical_clinic_escort' 
-  | 'grocery_pickup';
+  | 'grocery_pickup'
+  | 'other';
 
 export type BuddyRequestStatus = 
   | 'open' 

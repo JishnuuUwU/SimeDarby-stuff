@@ -29,9 +29,12 @@ html, body {
   align-items: center;
   width: 100vw;
   height: 100vh;
+  min-height: 100vh;
   background: radial-gradient(circle at 50% 20%, #171E29 0%, #080A0F 100%);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: auto;
   position: relative;
+  padding: 16px 8px;
 }
 
 /* Evaluator / Multi-Size Android Device Switcher Toolbar */
@@ -810,14 +813,16 @@ html, body {
    RESPONSIVE ADAPTATIONS (FOLDABLES & TABLETS)
 -------------------------------------------------------------- */
 @media (min-width: 640px) {
-  /* Adaptive dual column on foldables and tablets */
-  .adaptive-grid-2col {
+  /* Only activate 2-column grid when the active frame is actually wide (foldable or fluid mode) */
+  .device-wrapper.mode-foldable .adaptive-grid-2col,
+  .device-wrapper.mode-responsive .adaptive-grid-2col {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
     gap: 16px !important;
   }
 
-  .adaptive-split-view {
+  .device-wrapper.mode-foldable .adaptive-split-view,
+  .device-wrapper.mode-responsive .adaptive-split-view {
     display: flex !important;
     flex-direction: row !important;
     height: 100% !important;

@@ -134,5 +134,25 @@ export const MOCK_BUDDY_REQUESTS: AssistanceRequest[] = [
     status: 'open',
     createdAt: '3 hours ago',
     liveMessages: []
+  },
+  {
+    id: 'req_004',
+    requesterId: 'usr_res_03',
+    requesterName: 'Hafidz Rahman (Ilham Resident)',
+    requesterPrecinct: 'Ilham Residence, City of Elmina',
+    requesterUnit: 'IR-03-12',
+    requesterPhone: '+60 19-211 7743',
+    category: 'other',
+    title: 'Borrow Folding Ramp for Visiting Grandparent',
+    description: 'Looking to borrow a portable threshold ramp or helper for an hour while my wheelchair-bound grandmother visits this evening.',
+    pickupLocation: 'Ilham Residence Clubhouse Storage or Unit',
+    dropoffLocation: 'Block A, Unit IR-03-12',
+    estimatedDurationMins: 30,
+    scheduledTime: 'Today, 6:00 PM',
+    urgency: 'priority',
+    needsWheelchairSupport: true,
+    status: 'open',
+    createdAt: '15 mins ago',
+    liveMessages: []
   }
 ];

@@ -123,11 +123,39 @@
   --status-error: #F87171;
 }
 
-/* Accessible Font Scaling */
+:root {
+  --app-font-scale: 1;
+}
+
+/* Accessible Font & UI Scaling (MS 1184 / WCAG AAA Legibility) */
+[data-font-size="normal"] {
+  --app-font-scale: 1;
+}
+
 [data-font-size="large"] {
-  font-size: 112.5%;
+  --app-font-scale: 1.14;
 }
 
 [data-font-size="xlarge"] {
-  font-size: 125%;
+  --app-font-scale: 1.25;
+}
+
+/* Apply typography scale dynamically across the application frame */
+[data-font-size="large"] .android-frame {
+  zoom: 1.12;
+}
+
+[data-font-size="xlarge"] .android-frame {
+  zoom: 1.22;
+}
+
+@supports not (zoom: 1) {
+  [data-font-size="large"] .android-frame {
+    transform: scale(1.12);
+    transform-origin: center top;
+  }
+  [data-font-size="xlarge"] .android-frame {
+    transform: scale(1.22);
+    transform-origin: center top;
+  }
 }

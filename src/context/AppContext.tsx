@@ -61,6 +61,7 @@ interface AppContextType {
   acceptBuddyRequest: (requestId: string) => void;
   sendBuddyMessage: (requestId: string, text: string) => void;
   completeBuddyRequest: (requestId: string) => void;
+  deleteBuddyRequest: (requestId: string) => void;
   activeBuddyRequestId: string | null;
   setActiveBuddyRequestId: (id: string | null) => void;
 
@@ -346,6 +347,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
   };
 
+  const deleteBuddyRequest = (requestId: string) => {
+    setBuddyRequests(prev => prev.filter(req => req.id !== requestId));
+    if (activeBuddyRequestId === requestId) {
+      setActiveBuddyRequestId(null);
+    }
+    addToast({
+      type: 'info',
+      title: 'Request Removed',
+      message: 'Your community assistance request has been deleted.'
+    });
+  };
+
   const submitMisuseReport = (submission: MisuseReportSubmission) => {
     const reportId = 'REP-' + Date.now().toString().slice(-4);
     
@@ -467,6 +480,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         acceptBuddyRequest,
         sendBuddyMessage,
         completeBuddyRequest,
+        deleteBuddyRequest,
         activeBuddyRequestId,
         setActiveBuddyRequestId,
         parkingBays,

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { AssistanceCategory } from '../../types/buddy';
-import { X, Package, Calendar, HeartHandshake, Stethoscope, ShoppingBag, ShieldCheck } from 'lucide-react';
+import { X, Package, Calendar, HeartHandshake, Stethoscope, ShoppingBag, ShieldCheck, HelpCircle } from 'lucide-react';
 
 export const RequestAssistanceModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { createBuddyRequest, currentUser } = useApp();
@@ -44,6 +44,12 @@ export const RequestAssistanceModal: React.FC<{ onClose: () => void }> = ({ onCl
       label: 'Grocery / Essentials Aid', 
       icon: <ShoppingBag size={18} />, 
       desc: 'Assistance carrying weekly groceries to residence' 
+    },
+    { 
+      id: 'other', 
+      label: 'Other Assistance', 
+      icon: <HelpCircle size={18} />, 
+      desc: 'Custom neighborhood support or specialized accessibility aid' 
     }
   ];
 
