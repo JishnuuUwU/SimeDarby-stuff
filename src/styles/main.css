@@ -920,52 +920,6 @@ html, body {
 }
 
 /* -------------------------------------------------------------
-   KEYFRAME ANIMATIONS
--------------------------------------------------------------- */
-
-/* GPS pulsing beacon halo */
-@keyframes gpsPulse {
-  0%   { transform: scale(1);   opacity: 0.7; }
-  70%  { transform: scale(2.2); opacity: 0; }
-  100% { transform: scale(2.2); opacity: 0; }
-}
-
-/* Bottom sheet / route panel spring entrance */
-@keyframes sheetSpringUp {
-  0%   { transform: translateY(24px); opacity: 0; }
-  60%  { transform: translateY(-4px); opacity: 1; }
-  100% { transform: translateY(0px);  opacity: 1; }
-}
-
-/* Animated marching-ants route line */
-@keyframes marchingAnts {
-  0%   { stroke-dashoffset: 0; }
-  100% { stroke-dashoffset: -24; }
-}
-.animated-route-line {
-  stroke-dasharray: 6 6;
-  animation: marchingAnts 0.9s linear infinite;
-}
-
-/* Parking bay sensor pulse (available) */
-@keyframes pulseSensor {
-  0%, 100% { box-shadow: 0 0 0 0   rgba(16, 185, 129, 0.5); }
-  50%       { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
-}
-.pulse-sensor {
-  animation: pulseSensor 2s ease-in-out infinite;
-}
-
-/* Parking bay violation pulse (misuse detected) */
-@keyframes pulseViolation {
-  0%, 100% { box-shadow: 0 0 0 0   rgba(239, 68, 68, 0.6); }
-  50%       { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
-}
-.pulse-violation {
-  animation: pulseViolation 1.4s ease-in-out infinite;
-}
-
-/* -------------------------------------------------------------
    REDUCED MOTION (VESTIBULAR / LOW-VISION COMFORT)
 -------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
