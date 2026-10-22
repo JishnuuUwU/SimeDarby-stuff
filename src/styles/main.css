@@ -28,8 +28,11 @@ html, body {
   justify-content: center;
   align-items: center;
   width: 100vw;
+  /* dvh keeps the Android nav bar clear of mobile browser chrome; vh is the fallback */
   height: 100vh;
+  height: 100dvh;
   min-height: 100vh;
+  min-height: 100dvh;
   background: radial-gradient(circle at 50% 20%, #171E29 0%, #080A0F 100%);
   overflow-x: auto;
   overflow-y: auto;
