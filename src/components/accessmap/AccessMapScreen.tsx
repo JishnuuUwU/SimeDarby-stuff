@@ -256,6 +256,66 @@ export const AccessMapScreen: React.FC = () => {
   const [isTurnByTurnOpen, setIsTurnByTurnOpen] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
 
+  // Pan / drag state
+  const mapViewportRef = useRef<HTMLDivElement>(null);
+  const [mapViewport, setMapViewport] = useState({ w: 360, h: 480 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const dragStart = useRef<{ mx: number; my: number; px: number; py: number } | null>(null);
+
+  // Observe viewport size so label layout stays accurate
+  useLayoutEffect(() => {
+    const el = mapViewportRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      setMapViewport({ w: el.clientWidth, h: el.clientHeight });
+    });
+    ro.observe(el);
+    setMapViewport({ w: el.clientWidth, h: el.clientHeight });
+    return () => ro.disconnect();
+  }, []);
+
+  // Mouse pan handlers
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    setIsDragging(true);
+    dragStart.current = { mx: e.clientX, my: e.clientY, px: panOffset.x, py: panOffset.y };
+  }, [panOffset]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDragging || !dragStart.current) return;
+    setPanOffset({
+      x: dragStart.current.px + (e.clientX - dragStart.current.mx),
+      y: dragStart.current.py + (e.clientY - dragStart.current.my)
+    });
+  }, [isDragging]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+    dragStart.current = null;
+  }, []);
+
+  // Touch pan handlers
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    const t = e.touches[0];
+    setIsDragging(true);
+    dragStart.current = { mx: t.clientX, my: t.clientY, px: panOffset.x, py: panOffset.y };
+  }, [panOffset]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isDragging || !dragStart.current || e.touches.length !== 1) return;
+    const t = e.touches[0];
+    setPanOffset({
+      x: dragStart.current.px + (t.clientX - dragStart.current.mx),
+      y: dragStart.current.py + (t.clientY - dragStart.current.my)
+    });
+  }, [isDragging]);
+
+  const handleTouchEnd = useCallback(() => {
+    setIsDragging(false);
+    dragStart.current = null;
+  }, []);
+
   // Filter features by township and active toggles
   const visibleFeatures = allFeatures.filter(f => {
     if (f.townshipId !== activeTownship.id) return false;
@@ -808,6 +868,66 @@ export const AccessMapScreen: React.FC = () => {
               </div>
             );
           })}
+
+          {/* GPS \u201cYou Are Here\u201d pulsing beacon */}
+          {(() => {
+            const anchor = USER_ANCHORS[activeTownship.id] ?? DEFAULT_USER_ANCHOR;
+            const labelSide = labelSides['user-location'];
+            return (
+              <div
+                style={{
+                  position: 'absolute',
+                  left: `calc(${anchor.x}% - 20px)`,
+                  top: `calc(${anchor.y}% - 20px)`,
+                  width: 40,
+                  height: 40,
+                  transform: `scale(${1 / zoomLevel})`,
+                  transformOrigin: 'center center',
+                  transition: 'transform 200ms cubic-bezier(0.16, 1, 0.3, 1)',
+                  zIndex: 3,
+                  pointerEvents: 'none'
+                }}
+              >
+                {/* Outer pulse ring */}
+                <span
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    borderRadius: '50%',
+                    border: '2px solid rgba(0, 98, 210, 0.35)',
+                    animation: 'gpsPulse 2.2s ease-out infinite'
+                  }}
+                />
+                {/* Inner filled dot */}
+                <span
+                  style={{
+                    position: 'absolute',
+                    inset: '10px',
+                    borderRadius: '50%',
+                    backgroundColor: '#0062D2',
+                    border: '2.5px solid #FFFFFF',
+                    boxShadow: '0 2px 8px rgba(0,98,210,0.5)'
+                  }}
+                />
+                {/* Caption */}
+                {labelSide && (
+                  <div
+                    aria-hidden="true"
+                    style={{
+                      ...MARKER_LABEL_BASE,
+                      ...markerLabelPosition(labelSide),
+                      backgroundColor: '#0062D2',
+                      color: '#FFFFFF',
+                      fontSize: '9px',
+                      padding: '2px 6px'
+                    }}
+                  >
+                    {USER_LABEL}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Floating Controls (Zoom, Compass, Voice Guidance) */}
@@ -818,6 +938,7 @@ export const AccessMapScreen: React.FC = () => {
             right: '12px',
             display: 'flex',
             flexDirection: 'column',
+            alignItems: 'flex-end',
             gap: '8px',
             zIndex: 10
           }}
@@ -851,44 +972,74 @@ export const AccessMapScreen: React.FC = () => {
               borderRadius: 'var(--radius-sm)',
               boxShadow: 'var(--shadow-md)',
               border: 'var(--border-light)',
-              boxShadow: 'var(--shadow-md)',
               overflow: 'hidden',
-              pointerEvents: 'auto'
+              width: '34px'
             }}
           >
-            {/* Compass / reset view */}
             <button
-              onClick={() => setZoomLevel(prev => Math.min(prev + 0.15, 1.45))}
+              onClick={zoomIn}
+              disabled={isMaxZoom}
               style={{
                 width: '34px',
                 height: '34px',
                 border: 'none',
+                borderBottom: '1px solid #E2E8F0',
                 background: 'transparent',
-                fontWeight: 800,
-                fontSize: '16px',
-                cursor: 'pointer',
-                borderBottom: '1px solid #E2E8F0'
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: isMaxZoom ? 'not-allowed' : 'pointer',
+                opacity: isMaxZoom ? 0.35 : 1,
+                transition: 'opacity 150ms'
               }}
               title="Zoom In"
+              aria-label="Zoom in"
             >
-              +
+              <Plus size={16} color="var(--text-primary)" />
             </button>
             <button
-              onClick={() => setZoomLevel(prev => Math.max(prev - 0.15, 0.85))}
+              onClick={zoomOut}
+              disabled={isMinZoom}
               style={{
                 width: '34px',
                 height: '34px',
                 border: 'none',
                 background: 'transparent',
-                fontWeight: 800,
-                fontSize: '16px',
-                cursor: 'pointer'
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: isMinZoom ? 'not-allowed' : 'pointer',
+                opacity: isMinZoom ? 0.35 : 1,
+                transition: 'opacity 150ms'
               }}
               title="Zoom Out"
+              aria-label="Zoom out"
             >
-              −
+              <Minus size={16} color="var(--text-primary)" />
             </button>
           </div>
+
+          {/* Re-center / Locate Me */}
+          <button
+            onClick={() => { resetView(); setPanOffset({ x: 0, y: 0 }); }}
+            style={{
+              width: '34px',
+              height: '34px',
+              border: 'var(--border-light)',
+              borderRadius: 'var(--radius-sm)',
+              backgroundColor: isDefaultView && panOffset.x === 0 && panOffset.y === 0 ? '#0062D2' : '#FFFFFF',
+              boxShadow: 'var(--shadow-md)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'background-color 200ms'
+            }}
+            title="Re-centre on your location"
+            aria-label="Re-centre map"
+          >
+            <Locate size={15} color={isDefaultView && panOffset.x === 0 && panOffset.y === 0 ? '#FFFFFF' : '#0062D2'} />
+          </button>
         </div>
 
         {/* Active Step-Free Route Floater Panel */}
