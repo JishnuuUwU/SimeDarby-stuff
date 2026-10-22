@@ -1,0 +1,8 @@
+# Native Android shell + prebuilt APK are not part of the web deployment
+android
+release
+dist
+*.apk
+
+# Local tooling
+.vscode

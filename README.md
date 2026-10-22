@@ -16,7 +16,7 @@ An enterprise-grade mobile application and native Android package engineered for
 | **Minimum SDK** | Android 6.0 (API Level 23) | Compatible with ~98.5% of active Android devices |
 | **Target / Compile SDK** | Android 15 (API Level 35) | Built against latest Android runtime & security model |
 | **Runtime Architecture** | Capacitor 7 + React 19 (TypeScript) | Native WebView bridge with hardware haptic & status bar controls |
-| **Spatial Engine** | Leaflet 1.9 + Custom GeoJSON Vector Layers | 0-stair pathfinding, elevation profiles, and tactile overlays |
+| **Spatial Engine** | Custom SVG Vector Canvas (React 19) | 0-stair pathfinding, elevation profiles, tactile overlays, collision-aware marker labels |
 | **Malaysian Standard** | MS 1184:2014 Code of Practice | Slope gradient <= 1:12, tactile paving rib/dome differentiation |
 
 ---
@@ -121,6 +121,45 @@ If an Android physical device or emulator is not immediately available, the code
    - **Compact (360px)**: Android standard entry viewport (Galaxy A series) to verify zero text truncation.
    - **Foldable (768px)**: Galaxy Z Fold 6 / Tablet viewport for adaptive grid layouts.
    - **Fluid**: 100% responsive desktop/window viewport.
+
+---
+
+### Method 5: Cloud Deployment on Vercel (Public Evaluation URL)
+
+The repository ships with a Vercel configuration (`vercel.json`) and an upload filter (`.vercelignore`) so the web build can be hosted without build-time setup.
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/JishnuuUwU/SimeDarby-stuff)
+
+**Option A — Dashboard (no CLI):**
+1. Push the repository to GitHub.
+2. Open [vercel.com/new](https://vercel.com/new) and import the repository.
+3. Vercel auto-detects **Vite**. Confirm the settings:
+   - **Framework Preset:** `Vite`
+   - **Build Command:** `npm run build`
+   - **Output Directory:** `dist`
+   - **Node.js Version:** `20.x` or newer (enforced via `package.json > engines`)
+4. Click **Deploy**. Every subsequent push to `main` triggers a production redeploy.
+
+**Option B — CLI:**
+```bash
+npm i -g vercel
+vercel login
+vercel --prod
+```
+
+**Deployment notes:**
+- The production bundle is the identical React 19 build that Capacitor packages into the Android APK — same screens, tokens, and interactive state machines.
+- `android/` and `release/app-debug.apk` are excluded from the upload via `.vercelignore`; the web deployment does not need the native shell.
+- Vercel serves the application at `/`. There is no client-side router, so no SPA rewrite rules are required.
+- Hashed bundles under `/assets/*` are served `immutable`; the HTML shell is revalidated on every deploy.
+- The web viewport keeps pinch-zoom enabled and removes the legacy `user-scalable=no` lock, satisfying **WCAG 2.2 (1.4.4 Resize Text)** on real mobile browsers.
+- No environment variables, secrets, or database services are required.
+
+Verify the exact production artifact locally before deploying:
+```bash
+npm run build
+npm run preview
+```
 
 ---
 
