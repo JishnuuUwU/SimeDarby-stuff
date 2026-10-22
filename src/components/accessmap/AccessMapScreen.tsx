@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
+import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { AccessibilityFeatureType, MapMarkerFeature } from '../../types/accessibility';
-import { 
-  Navigation, 
-  MapPin, 
-  CheckCircle2, 
-  Info, 
-  Compass, 
-  SlidersHorizontal, 
+import {
+  Navigation,
+  MapPin,
+  CheckCircle2,
+  Info,
+  Compass,
+  SlidersHorizontal,
   Maximize2,
   Volume2,
   X,
@@ -20,19 +20,229 @@ import {
   CornerDownRight,
   Plus,
   Minus,
-  Locate,
-  Crosshair,
-  RotateCcw
+  Locate
 } from 'lucide-react';
 import { RoutePlannerModal } from './RoutePlannerModal';
 import { TurnByTurnModal } from './TurnByTurnModal';
 
+/* ------------------------------------------------------------------
+   MAP LAYOUT SYSTEM
+   Pins are anchored with township-stable percentages so toggling a
+   layer never reshuffles the remaining pins. Captions are laid out in
+   screen space, flipping or dropping when they would cover another
+   caption or pin. Because pins are counter-scaled against the canvas
+   zoom, zooming in genuinely frees up room for more captions.
+------------------------------------------------------------------- */
+type LabelSide = 'below' | 'above' | 'right' | 'left';
+
+interface Rect {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+interface MarkerAnchor {
+  x: number;
+  y: number;
+}
+
+interface LabelCandidate extends MarkerAnchor {
+  id: string;
+  label: string;
+  priority: number;
+}
+
+const MARKER_DIAMETER = 40;
+const MARKER_CLEARANCE = 22;   // pin radius + halo breathing room
+const LABEL_GAP = 6;
+const LABEL_HEIGHT = 18;
+const LABEL_MAX_WIDTH = 132;
+const LABEL_EDGE_PADDING = 6;
+const LABEL_CHAR_WIDTH = 5.35; // 9.5px / 700 weight glyph estimate
+
+const ZOOM_MIN = 0.85;
+const ZOOM_STEP = 0.15;
+const ZOOM_MAX = 1.45;
+
+/* Stable spatial anchors per asset (percentages of the canvas). */
+const MARKER_POSITIONS: Record<string, MarkerAnchor> = {
+  // City of Elmina — lakeside mall, promenade, boardwalk, park
+  feat_elmina_tactile_01: { x: 34, y: 15 },
+  feat_elmina_lift_01: { x: 14, y: 27 },
+  feat_elmina_ramp_01: { x: 21, y: 41 },
+  feat_elmina_wc_01: { x: 45, y: 25 },
+  feat_elmina_lift_02: { x: 66, y: 31 },
+  feat_elmina_tactile_02: { x: 54, y: 51 },
+  feat_elmina_ramp_02: { x: 77, y: 63 },
+  feat_elmina_wc_02: { x: 85, y: 36 },
+
+  // KL East — mall podium, transit walkway, forest park link
+  feat_kleast_ramp_01: { x: 22, y: 20 },
+  feat_kleast_lift_01: { x: 58, y: 25 },
+  feat_kleast_tactile_01: { x: 37, y: 45 },
+  feat_kleast_wc_01: { x: 72, y: 49 }
+};
+
+const FALLBACK_ANCHORS: MarkerAnchor[] = [
+  { x: 26, y: 30 },
+  { x: 70, y: 28 },
+  { x: 38, y: 48 },
+  { x: 62, y: 60 },
+  { x: 46, y: 72 },
+  { x: 80, y: 46 }
+];
+
+/* Cartographic short captions — full names remain in the detail sheet. */
+const MARKER_SHORT_LABELS: Record<string, string> = {
+  feat_elmina_tactile_01: 'Tactile Corridor',
+  feat_elmina_lift_01: 'Glass Lift #1',
+  feat_elmina_ramp_01: 'North Ramp',
+  feat_elmina_wc_01: 'Tandas OKU',
+  feat_elmina_lift_02: 'Pavilion Lift #2',
+  feat_elmina_tactile_02: 'Warning Domes',
+  feat_elmina_ramp_02: 'Rainbow Bridge Ramp',
+  feat_elmina_wc_02: 'Park Tandas OKU',
+  feat_kleast_ramp_01: 'East Step-Free Link',
+  feat_kleast_lift_01: 'Atrium Lift #3',
+  feat_kleast_tactile_01: 'LRT Tactile Trail',
+  feat_kleast_wc_01: 'Family OKU Tandas'
+};
+
+const USER_ANCHORS: Record<string, MarkerAnchor> = {
+  elmina: { x: 52, y: 66 },
+  kl_east: { x: 52, y: 62 }
+};
+const DEFAULT_USER_ANCHOR: MarkerAnchor = { x: 50, y: 68 };
+const USER_LABEL = 'You · ±4 m';
+
+const MARKER_HALO: Record<AccessibilityFeatureType, string> = {
+  ramp: 'rgba(0, 98, 210, 0.26)',
+  tactile_paving: 'rgba(217, 119, 6, 0.26)',
+  elevator: 'rgba(5, 150, 105, 0.26)',
+  restroom: 'rgba(124, 58, 237, 0.26)'
+};
+
+const getMarkerAnchor = (id: string, index: number): MarkerAnchor =>
+  MARKER_POSITIONS[id] ?? FALLBACK_ANCHORS[index % FALLBACK_ANCHORS.length];
+
+const rectsOverlap = (a: Rect, b: Rect): boolean =>
+  a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+
+const estimateLabelWidth = (text: string): number =>
+  Math.min(LABEL_MAX_WIDTH, Math.round(text.length * LABEL_CHAR_WIDTH + 18));
+
+const labelRect = (side: LabelSide, cx: number, cy: number, width: number): Rect => {
+  const edge = MARKER_DIAMETER / 2 + LABEL_GAP;
+
+  switch (side) {
+    case 'below':
+      return { left: cx - width / 2, right: cx + width / 2, top: cy + edge, bottom: cy + edge + LABEL_HEIGHT };
+    case 'above':
+      return { left: cx - width / 2, right: cx + width / 2, top: cy - edge - LABEL_HEIGHT, bottom: cy - edge };
+    case 'right':
+      return { left: cx + edge, right: cx + edge + width, top: cy - LABEL_HEIGHT / 2, bottom: cy + LABEL_HEIGHT / 2 };
+    case 'left':
+      return { left: cx - edge - width, right: cx - edge, top: cy - LABEL_HEIGHT / 2, bottom: cy + LABEL_HEIGHT / 2 };
+  }
+};
+
+const layoutMarkerLabels = (
+  candidates: LabelCandidate[],
+  size: { w: number; h: number },
+  zoom: number
+): Record<string, LabelSide | null> => {
+  const pins = new Map<string, Rect>();
+  const placedLabels: Rect[] = [];
+  const result: Record<string, LabelSide | null> = {};
+
+  // The canvas is scaled about its centre, so map % anchors into screen px.
+  const centres = candidates.map(candidate => ({
+    ...candidate,
+    cx: ((candidate.x / 100) * size.w - size.w / 2) * zoom + size.w / 2,
+    cy: ((candidate.y / 100) * size.h - size.h / 2) * zoom + size.h / 2
+  }));
+
+  centres.forEach(({ id, cx, cy }) => {
+    pins.set(id, {
+      left: cx - MARKER_CLEARANCE,
+      right: cx + MARKER_CLEARANCE,
+      top: cy - MARKER_CLEARANCE,
+      bottom: cy + MARKER_CLEARANCE
+    });
+  });
+
+  const sides: LabelSide[] = ['below', 'above', 'right', 'left'];
+
+  [...centres]
+    .sort((a, b) => a.priority - b.priority)
+    .forEach(({ id, label, cx, cy, priority }) => {
+      const width = estimateLabelWidth(label);
+      let chosen: LabelSide | null = null;
+
+      for (const side of sides) {
+        const rect = labelRect(side, cx, cy, width);
+
+        const insideCanvas =
+          rect.left >= LABEL_EDGE_PADDING &&
+          rect.right <= size.w - LABEL_EDGE_PADDING &&
+          rect.top >= LABEL_EDGE_PADDING &&
+          rect.bottom <= size.h - LABEL_EDGE_PADDING;
+
+        if (!insideCanvas) continue;
+        if (placedLabels.some(other => rectsOverlap(rect, other))) continue;
+        if ([...pins.entries()].some(([pinId, pin]) => pinId !== id && rectsOverlap(rect, pin))) continue;
+
+        chosen = side;
+        placedLabels.push(rect);
+        break;
+      }
+
+      // The focused pin always keeps a caption, even in a dense cluster.
+      result[id] = chosen ?? (priority === 0 ? 'below' : null);
+    });
+
+  return result;
+};
+
+const markerLabelPosition = (side: LabelSide): React.CSSProperties => {
+  const offset = `calc(100% + ${LABEL_GAP}px)`;
+
+  switch (side) {
+    case 'below':
+      return { top: offset, left: '50%', transform: 'translateX(-50%)' };
+    case 'above':
+      return { bottom: offset, left: '50%', transform: 'translateX(-50%)' };
+    case 'right':
+      return { left: offset, top: '50%', transform: 'translateY(-50%)' };
+    case 'left':
+      return { right: offset, top: '50%', transform: 'translateY(-50%)' };
+  }
+};
+
+const MARKER_LABEL_BASE: React.CSSProperties = {
+  position: 'absolute',
+  maxWidth: LABEL_MAX_WIDTH,
+  padding: '2px 7px',
+  borderRadius: '5px',
+  fontSize: '9.5px',
+  fontWeight: 700,
+  lineHeight: `${LABEL_HEIGHT - 4}px`,
+  letterSpacing: '0.1px',
+  whiteSpace: 'nowrap',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  pointerEvents: 'none',
+  boxShadow: '0 2px 6px rgba(15, 23, 42, 0.22)',
+  transition: 'background-color var(--transition-fast)'
+};
+
 export const AccessMapScreen: React.FC = () => {
-  const { 
-    activeTownship, 
-    allFeatures, 
-    featureFilters, 
-    toggleFeatureFilter, 
+  const {
+    activeTownship,
+    allFeatures,
+    featureFilters,
+    toggleFeatureFilter,
     activeRoute,
     clearRoute,
     selectedMarker,
@@ -45,69 +255,41 @@ export const AccessMapScreen: React.FC = () => {
   const [isRouteModalOpen, setIsRouteModalOpen] = useState(false);
   const [isTurnByTurnOpen, setIsTurnByTurnOpen] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
-  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [gpsTrackingActive, setGpsTrackingActive] = useState(true);
-
-  // Prototype Simulated GPS user position (% coordinates on map canvas)
-  const [userLocation, setUserLocation] = useState({ x: 38, y: 38, accuracyMeters: 4 });
-
-  // Handle Drag / Pan Events
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true);
-    setDragStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    setPanOffset({
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y
-    });
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  // Touch Support for mobile panning
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 1) {
-      setIsDragging(true);
-      setDragStart({ x: e.touches[0].clientX - panOffset.x, y: e.touches[0].clientY - panOffset.y });
-    }
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging || e.touches.length !== 1) return;
-    setPanOffset({
-      x: e.touches[0].clientX - dragStart.x,
-      y: e.touches[0].clientY - dragStart.y
-    });
-  };
-
-  const handleTouchEnd = () => {
-    setIsDragging(false);
-  };
-
-  const handleRecenterGPS = () => {
-    setPanOffset({ x: 0, y: 0 });
-    setZoomLevel(1.1);
-    setGpsTrackingActive(true);
-    addToast({
-      type: 'info',
-      title: 'GPS Signal Locked',
-      message: 'Accuracy ±4m. Continuous step-free sensor telemetry active.'
-    });
-    speakText(`GPS locked at ${activeTownship.name} Promenade. Tracking real-time accessible route.`);
-  };
 
   // Filter features by township and active toggles
   const visibleFeatures = allFeatures.filter(f => {
     if (f.townshipId !== activeTownship.id) return false;
     return featureFilters[f.type];
   });
+
+  const userAnchor = USER_ANCHORS[activeTownship.id] ?? DEFAULT_USER_ANCHOR;
+
+  const labelSides = useMemo(() => {
+    const candidates: LabelCandidate[] = visibleFeatures.map((feature, index) => ({
+      id: feature.id,
+      label: MARKER_SHORT_LABELS[feature.id] ?? feature.name,
+      ...getMarkerAnchor(feature.id, index),
+      // Selected pin first, "you are here" next, then reading order.
+      priority: selectedMarker?.id === feature.id ? 0 : index + 2
+    }));
+
+    candidates.push({
+      id: 'user-location',
+      label: USER_LABEL,
+      x: userAnchor.x,
+      y: userAnchor.y,
+      priority: 1
+    });
+
+    return layoutMarkerLabels(candidates, mapViewport, zoomLevel);
+  }, [visibleFeatures, selectedMarker, userAnchor.x, userAnchor.y, mapViewport, zoomLevel]);
+
+  const zoomIn = () => setZoomLevel(prev => Math.min(Number((prev + ZOOM_STEP).toFixed(2)), ZOOM_MAX));
+  const zoomOut = () => setZoomLevel(prev => Math.max(Number((prev - ZOOM_STEP).toFixed(2)), ZOOM_MIN));
+  const resetView = () => setZoomLevel(1);
+  const isMaxZoom = zoomLevel >= ZOOM_MAX - 0.001;
+  const isMinZoom = zoomLevel <= ZOOM_MIN + 0.001;
+  const isDefaultView = zoomLevel === 1;
 
   // Dedicated high-craft vector icon renderers (Anti-vibecoding: no emojis)
   const renderFeatureVectorIcon = (type: AccessibilityFeatureType, size: number = 18, color?: string) => {
@@ -174,16 +356,17 @@ export const AccessMapScreen: React.FC = () => {
   return (
     <div className="tab-screen-container" style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
       {/* Top Filter & Route Action Bar */}
-      <div 
+      <div
         style={{
-          padding: '12px 16px',
+          position: 'relative',
+          padding: '12px 16px 10px',
           backgroundColor: 'var(--bg-card)',
           borderBottom: 'var(--border-light)',
           display: 'flex',
           flexDirection: 'column',
           gap: '10px',
           boxShadow: 'var(--shadow-sm)',
-          zIndex: 10
+          zIndex: 30
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -204,7 +387,7 @@ export const AccessMapScreen: React.FC = () => {
             </p>
           </div>
 
-          <button 
+          <button
             className="btn-primary"
             style={{ padding: '9px 15px', fontSize: '12.5px' }}
             onClick={() => setIsRouteModalOpen(true)}
@@ -216,7 +399,18 @@ export const AccessMapScreen: React.FC = () => {
         </div>
 
         {/* Feature Layer Toggles */}
-        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '2px', scrollbarWidth: 'none' }}>
+        <div
+          style={{
+            display: 'flex',
+            gap: '8px',
+            overflowX: 'auto',
+            overflowY: 'hidden',
+            padding: '1px 2px 3px',
+            margin: '0 -2px',
+            scrollbarWidth: 'none',
+            WebkitOverflowScrolling: 'touch'
+          }}
+        >
           {/* Wheelchair Ramps */}
           <button
             onClick={() => toggleFeatureFilter('ramp')}
@@ -233,6 +427,7 @@ export const AccessMapScreen: React.FC = () => {
               fontWeight: 700,
               cursor: 'pointer',
               whiteSpace: 'nowrap',
+              flexShrink: 0,
               transition: 'var(--transition-fast)'
             }}
           >
@@ -256,6 +451,7 @@ export const AccessMapScreen: React.FC = () => {
               fontWeight: 700,
               cursor: 'pointer',
               whiteSpace: 'nowrap',
+              flexShrink: 0,
               transition: 'var(--transition-fast)'
             }}
           >
@@ -279,6 +475,7 @@ export const AccessMapScreen: React.FC = () => {
               fontWeight: 700,
               cursor: 'pointer',
               whiteSpace: 'nowrap',
+              flexShrink: 0,
               transition: 'var(--transition-fast)'
             }}
           >
@@ -302,6 +499,7 @@ export const AccessMapScreen: React.FC = () => {
               fontWeight: 700,
               cursor: 'pointer',
               whiteSpace: 'nowrap',
+              flexShrink: 0,
               transition: 'var(--transition-fast)'
             }}
           >
@@ -312,7 +510,8 @@ export const AccessMapScreen: React.FC = () => {
       </div>
 
       {/* Interactive Spatial Architectural Vector Canvas */}
-      <div 
+      <div
+        ref={mapViewportRef}
         style={{
           flex: 1,
           position: 'relative',
@@ -332,7 +531,7 @@ export const AccessMapScreen: React.FC = () => {
         onTouchEnd={handleTouchEnd}
       >
         {/* Vector Architectural Blueprint Canvas with Real-Time Pan & Zoom Transform */}
-        <div 
+        <div
           style={{
             position: 'absolute',
             inset: 0,
@@ -478,7 +677,7 @@ export const AccessMapScreen: React.FC = () => {
               <g>
                 {/* Glow Underlay */}
                 <path
-                  d={isElmina 
+                  d={isElmina
                     ? "M 55 120 C 110 120, 150 160, 205 210 S 290 290, 360 380"
                     : "M 60 150 L 60 280 L 220 280 L 220 370"
                   }
@@ -491,7 +690,7 @@ export const AccessMapScreen: React.FC = () => {
 
                 {/* Continuous Solid Inner Bed */}
                 <path
-                  d={isElmina 
+                  d={isElmina
                     ? "M 55 120 C 110 120, 150 160, 205 210 S 290 290, 360 380"
                     : "M 60 150 L 60 280 L 220 280 L 220 370"
                   }
@@ -503,7 +702,7 @@ export const AccessMapScreen: React.FC = () => {
 
                 {/* Animated Dash Ants Line */}
                 <path
-                  d={isElmina 
+                  d={isElmina
                     ? "M 55 120 C 110 120, 150 160, 205 210 S 290 290, 360 380"
                     : "M 60 150 L 60 280 L 220 280 L 220 370"
                   }
@@ -539,149 +738,80 @@ export const AccessMapScreen: React.FC = () => {
 
           {/* Precision Vector Markers on Spatial Map */}
           {visibleFeatures.map((feat, index) => {
-            const positions = [
-              { left: '26%', top: '22%' },
-              { left: '72%', top: '74%' },
-              { left: '42%', top: '35%' },
-              { left: '56%', top: '48%' },
-              { left: '30%', top: '16%' },
-              { left: '68%', top: '24%' },
-              { left: '34%', top: '26%' },
-              { left: '80%', top: '68%' }
-            ];
-            const pos = positions[index % positions.length];
+            const anchor = getMarkerAnchor(feat.id, index);
+            const accent = getMarkerAccentColor(feat.type);
             const isSelected = selectedMarker?.id === feat.id;
+            const labelSide = labelSides[feat.id];
 
             return (
               <div
                 key={feat.id}
-                onClick={() => {
-                  setSelectedMarker(feat);
-                  speakText(`${feat.name}. ${feat.description}`);
-                }}
                 style={{
                   position: 'absolute',
-                  left: pos.left,
-                  top: pos.top,
-                  transform: 'translate(-50%, -50%)',
-                  cursor: 'pointer',
-                  zIndex: isSelected ? 15 : 6,
-                  transition: 'transform var(--transition-fast)'
+                  left: `calc(${anchor.x}% - ${MARKER_DIAMETER / 2}px)`,
+                  top: `calc(${anchor.y}% - ${MARKER_DIAMETER / 2}px)`,
+                  width: MARKER_DIAMETER,
+                  height: MARKER_DIAMETER,
+                  // Counter-scale so pins keep a constant screen size while the
+                  // canvas zooms: spread-out pins then leave room for captions.
+                  transform: `scale(${1 / zoomLevel})`,
+                  transformOrigin: 'center center',
+                  transition: 'transform 200ms cubic-bezier(0.16, 1, 0.3, 1)',
+                  zIndex: isSelected ? 2 : 1
                 }}
               >
-                <div
-                  style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '50%',
-                    backgroundColor: '#FFFFFF',
-                    border: `2.5px solid ${getMarkerAccentColor(feat.type)}`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: isSelected 
-                      ? `0 0 0 5px ${feat.type === 'ramp' ? 'rgba(0,98,210,0.3)' : 'rgba(217,119,6,0.3)'}, 0 6px 14px rgba(0,0,0,0.2)`
-                      : '0 4px 10px rgba(15, 23, 42, 0.16)',
-                    transform: isSelected ? 'scale(1.18)' : 'scale(1)',
-                    transition: 'all var(--transition-spring)'
+                <button
+                  type="button"
+                  className="map-marker-btn"
+                  onClick={() => {
+                    setSelectedMarker(feat);
+                    speakText(`${feat.name}. ${feat.description}`);
                   }}
+                  aria-label={`${feat.name}, ${feat.locationName}. Open accessibility details.`}
+                  aria-pressed={isSelected}
                   title={feat.name}
                 >
-                  {renderFeatureVectorIcon(feat.type, 20, getMarkerAccentColor(feat.type))}
-                </div>
+                  <span
+                    style={{
+                      width: MARKER_DIAMETER,
+                      height: MARKER_DIAMETER,
+                      borderRadius: '50%',
+                      backgroundColor: '#FFFFFF',
+                      border: `2.5px solid ${accent}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: isSelected
+                        ? `0 0 0 5px ${MARKER_HALO[feat.type]}, 0 6px 14px rgba(15, 23, 42, 0.24)`
+                        : '0 4px 10px rgba(15, 23, 42, 0.16)',
+                      transform: isSelected ? 'scale(1.12)' : 'scale(1)',
+                      transition: 'transform var(--transition-spring), box-shadow var(--transition-fast)'
+                    }}
+                  >
+                    {renderFeatureVectorIcon(feat.type, 20, accent)}
+                  </span>
+                </button>
 
-                {/* Subtitle tag below marker */}
-                <div 
-                  style={{
-                    position: 'absolute',
-                    top: '44px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    backgroundColor: isSelected ? 'var(--sd-crimson)' : 'rgba(15, 23, 42, 0.88)',
-                    color: '#FFFFFF',
-                    fontSize: '9.5px',
-                    fontWeight: 700,
-                    padding: '2px 7px',
-                    borderRadius: '5px',
-                    whiteSpace: 'nowrap',
-                    pointerEvents: 'none',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <span>{feat.name.slice(0, 15)}</span>
-                </div>
+                {/* Caption: truncated by CSS and only rendered when it wins its slot */}
+                {labelSide && (
+                  <div
+                    aria-hidden="true"
+                    style={{
+                      ...MARKER_LABEL_BASE,
+                      ...markerLabelPosition(labelSide),
+                      backgroundColor: isSelected ? 'var(--sd-crimson)' : 'rgba(15, 23, 42, 0.9)'
+                    }}
+                  >
+                    {MARKER_SHORT_LABELS[feat.id] ?? feat.name}
+                  </div>
+                )}
               </div>
             );
           })}
-
-          {/* Prototype Live GPS User Location Marker with Pulse Radar */}
-          <div
-            style={{
-              position: 'absolute',
-              left: `${userLocation.x}%`,
-              top: `${userLocation.y}%`,
-              transform: 'translate(-50%, -50%)',
-              zIndex: 14,
-              pointerEvents: 'none',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center'
-            }}
-          >
-            {/* GPS Accuracy Halo Pulse */}
-            <div
-              style={{
-                position: 'absolute',
-                width: '46px',
-                height: '46px',
-                borderRadius: '50%',
-                backgroundColor: 'rgba(0, 98, 210, 0.16)',
-                border: '1.5px solid rgba(0, 98, 210, 0.45)',
-                animation: 'routeMarch 2s ease-out infinite'
-              }}
-            />
-
-            {/* GPS Core Pin */}
-            <div
-              style={{
-                width: '18px',
-                height: '18px',
-                borderRadius: '50%',
-                backgroundColor: 'var(--oku-blue)',
-                border: '3px solid #FFFFFF',
-                boxShadow: '0 2px 8px rgba(0, 98, 210, 0.6)',
-                zIndex: 2
-              }}
-            />
-
-            {/* "You Are Here" GPS Pill */}
-            <div
-              style={{
-                marginTop: '6px',
-                backgroundColor: 'var(--text-primary)',
-                color: '#FFFFFF',
-                padding: '2px 8px',
-                borderRadius: 'var(--radius-full)',
-                fontSize: '9.5px',
-                fontWeight: 800,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                boxShadow: 'var(--shadow-sm)',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981' }} />
-              <span>You (±4m)</span>
-            </div>
-          </div>
         </div>
 
         {/* Floating Controls (Zoom, Compass, Voice Guidance) */}
-        <div 
+        <div
           style={{
             position: 'absolute',
             top: '12px',
@@ -692,121 +822,78 @@ export const AccessMapScreen: React.FC = () => {
             zIndex: 10
           }}
         >
-          {/* Compass Orient & Recenter Button */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-end' }}>
-            <button 
-              onClick={() => {
-                setPanOffset({ x: 0, y: 0 });
-                setZoomLevel(1);
-              }}
-              style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                backdropFilter: 'blur(8px)',
-                borderRadius: 'var(--radius-full)',
-                padding: '6px 12px',
-                boxShadow: 'var(--shadow-sm)',
-                fontSize: '11px',
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                border: 'var(--border-light)',
-                cursor: 'pointer',
-                color: 'var(--text-primary)',
-                transition: 'var(--transition-fast)'
-              }}
-              title="Reset View to Center"
-            >
-              <Compass size={14} color="var(--sd-crimson)" />
-              <span>North Oriented</span>
-            </button>
-
-            {/* GPS My-Location Recenter Button */}
-            <button
-              onClick={handleRecenterGPS}
-              style={{
-                width: '38px',
-                height: '38px',
-                backgroundColor: gpsTrackingActive ? '#FFFFFF' : 'var(--bg-card)',
-                borderRadius: '50%',
-                boxShadow: '0 3px 10px rgba(0, 98, 210, 0.22)',
-                border: gpsTrackingActive ? '2px solid var(--oku-blue)' : 'var(--border-light)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                color: 'var(--oku-blue)',
-                transition: 'var(--transition-fast)'
-              }}
-              title="Locate My Position (GPS)"
-              aria-label="Locate My Position (GPS)"
-            >
-              <Locate size={18} />
-            </button>
+          {/* Compass Orient */}
+          <div
+            style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.94)',
+              backdropFilter: 'blur(8px)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '6px 10px',
+              boxShadow: 'var(--shadow-sm)',
+              fontSize: '11px',
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              border: 'var(--border-light)'
+            }}
+          >
+            <Compass size={14} color="var(--sd-crimson)" />
+            <span>North Oriented</span>
           </div>
 
-          {/* Premium Zoom In / Out Controls */}
-          <div 
+          {/* Zoom Controls */}
+          <div
             style={{
               display: 'flex',
               flexDirection: 'column',
               backgroundColor: '#FFFFFF',
-              borderRadius: 'var(--radius-md)',
-              boxShadow: '0 4px 14px rgba(15, 23, 42, 0.12)',
+              borderRadius: 'var(--radius-sm)',
+              boxShadow: 'var(--shadow-md)',
               border: 'var(--border-light)',
-              overflow: 'hidden'
+              boxShadow: 'var(--shadow-md)',
+              overflow: 'hidden',
+              pointerEvents: 'auto'
             }}
           >
+            {/* Compass / reset view */}
             <button
-              onClick={() => setZoomLevel(prev => Math.min(prev + 0.2, 1.8))}
+              onClick={() => setZoomLevel(prev => Math.min(prev + 0.15, 1.45))}
               style={{
-                width: '38px',
-                height: '38px',
+                width: '34px',
+                height: '34px',
                 border: 'none',
-                background: '#FFFFFF',
-                color: 'var(--text-primary)',
+                background: 'transparent',
+                fontWeight: 800,
+                fontSize: '16px',
                 cursor: 'pointer',
-                borderBottom: '1px solid #E2E8F0',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'background var(--transition-fast)'
+                borderBottom: '1px solid #E2E8F0'
               }}
               title="Zoom In"
-              aria-label="Zoom In"
-              onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#F1F5F9')}
-              onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#FFFFFF')}
             >
-              <Plus size={18} strokeWidth={2.5} />
+              +
             </button>
-
             <button
-              onClick={() => setZoomLevel(prev => Math.max(prev - 0.2, 0.7))}
+              onClick={() => setZoomLevel(prev => Math.max(prev - 0.15, 0.85))}
               style={{
-                width: '38px',
-                height: '38px',
+                width: '34px',
+                height: '34px',
                 border: 'none',
-                background: '#FFFFFF',
-                color: 'var(--text-primary)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'background var(--transition-fast)'
+                background: 'transparent',
+                fontWeight: 800,
+                fontSize: '16px',
+                cursor: 'pointer'
               }}
               title="Zoom Out"
-              aria-label="Zoom Out"
-              onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#F1F5F9')}
-              onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#FFFFFF')}
             >
-              <Minus size={18} strokeWidth={2.5} />
+              −
             </button>
           </div>
         </div>
 
         {/* Active Step-Free Route Floater Panel */}
         {activeRoute && (
-          <div 
+          <div
             style={{
               position: 'absolute',
               bottom: '16px',
@@ -817,7 +904,7 @@ export const AccessMapScreen: React.FC = () => {
               padding: '14px 16px',
               boxShadow: 'var(--shadow-lg)',
               border: '2px solid var(--oku-blue)',
-              zIndex: 20,
+              zIndex: 50,
               display: 'flex',
               flexDirection: 'column',
               gap: '10px',
@@ -839,7 +926,7 @@ export const AccessMapScreen: React.FC = () => {
                 </h4>
               </div>
 
-              <button 
+              <button
                 onClick={clearRoute}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: '2px' }}
                 title="Clear Route"
@@ -860,7 +947,7 @@ export const AccessMapScreen: React.FC = () => {
                 </div>
               </div>
 
-              <button 
+              <button
                 className="btn-primary"
                 style={{ padding: '7px 13px', fontSize: '12px' }}
                 onClick={() => setIsTurnByTurnOpen(true)}
@@ -897,7 +984,7 @@ export const AccessMapScreen: React.FC = () => {
                   <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{selectedMarker.locationName}</p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setSelectedMarker(null)}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}
               >
@@ -960,8 +1047,8 @@ export const AccessMapScreen: React.FC = () => {
             </div>
 
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button 
-                className="btn-primary" 
+              <button
+                className="btn-primary"
                 style={{ flex: 1 }}
                 onClick={() => {
                   setSelectedMarker(null);
